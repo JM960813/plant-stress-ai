@@ -19,6 +19,24 @@ st.markdown(
 """
 )
 
+st.markdown(
+    """
+    <style>
+    .block-container {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+    }
+
+    div[data-testid="stDataFrame"] {
+        border-radius: 10px;
+        border: 1px solid #E6E6E6;
+        padding: 6px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 st.subheader("🧠 Interpretation Guide")
 st.markdown(
     """
