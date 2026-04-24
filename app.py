@@ -94,76 +94,104 @@ def classify_stress(x):
 
 
 def generate_word_report(geno_rank, summary_text, df_result):
+    fig1, ax1 = plt.subplots()
+    df_plot = geno_rank.reset_index()
+    df_plot.columns = ["Genotype", "Stress_Index"]
+
+    ax1.bar(df_plot["Genotype"], df_plot["Stress_Index"], color="#4CAF50")
+    ax1.set_title("Figure 1. Stress Index by Genotype")
+    ax1.set_ylabel("Stress Index")
+    plt.xticks(rotation=45)
+
+    fig_path = "fig1_stress.png"
+    plt.savefig(fig_path, dpi=300, bbox_inches="tight")
+    plt.close()
+
+    fig2, ax2 = plt.subplots()
+    ax2.scatter(df_result["SPAD"], df_result["FvFm"], color="#4C78A8")
+    ax2.set_title("Figure 2. SPAD vs Fv/Fm Relationship")
+    ax2.set_xlabel("SPAD")
+    ax2.set_ylabel("Fv/Fm")
+    plt.savefig("fig2_physiology.png", dpi=300, bbox_inches="tight")
+    plt.close()
+
     doc = Document()
 
-    title = doc.add_heading("PhytoStress AI Report", 0)
+    title = doc.add_heading("PhytoStress AI", 0)
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
     subtitle = doc.add_paragraph(
-        "Drought Stress Phenotyping and Breeding Decision Support"
+        "Drought Stress Phenotyping and Breeding Decision Support System"
     )
     subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
     doc.add_paragraph("\n")
     doc.add_paragraph(
-        "Generated using physiological and biomass-based stress analysis framework."
+        "This report summarizes genotype performance under drought stress conditions "
+        "using physiological and biomass-based indicators."
     )
+
     doc.add_page_break()
 
     doc.add_heading("Abstract", level=1)
     doc.add_paragraph(summary_text)
 
-    doc.add_heading("1. Methodology", level=1)
+    doc.add_heading("1. Introduction", level=1)
     doc.add_paragraph(
-        "Stress Index was calculated using biomass reduction under drought stress conditions: "
-        "1 - (Biomass_stress / Biomass_control). "
+        "Drought stress is one of the major limiting factors in crop productivity. "
+        "This study evaluates genotype performance using a Stress Index derived from biomass reduction "
+        "under controlled and stress conditions."
+    )
+
+    doc.add_heading("2. Methodology", level=1)
+    doc.add_paragraph(
+        "Stress Index was calculated as: 1 - (Biomass_stress / Biomass_control). "
         "Lower values indicate higher drought tolerance."
     )
     doc.add_paragraph(
-        "Physiological traits (SPAD and Fv/Fm) were used as complementary indicators of plant health."
+        "Physiological traits such as SPAD and Fv/Fm were considered as complementary indicators "
+        "of plant health status under stress conditions."
     )
 
-    doc.add_heading("2. Genotype Performance", level=1)
-    for i, (geno, value) in enumerate(geno_rank.items(), 1):
-        doc.add_paragraph(f"{i}. {geno} → Stress Index: {value:.3f}")
+    doc.add_heading("Figures", level=1)
+    doc.add_paragraph("Figure 1. Stress Index by Genotype")
+    doc.add_picture("fig1_stress.png", width=Inches(5.8))
+    doc.add_paragraph("Figure 2. Relationship between SPAD and Fv/Fm")
+    doc.add_picture("fig2_physiology.png", width=Inches(5.8))
 
-    doc.add_heading("3. Summary Table", level=1)
+    doc.add_heading("4. Genotype Ranking", level=1)
     table = doc.add_table(rows=1, cols=2)
-    hdr_cells = table.rows[0].cells
-    hdr_cells[0].text = "Genotype"
-    hdr_cells[1].text = "Stress Index"
+    hdr = table.rows[0].cells
+    hdr[0].text = "Genotype"
+    hdr[1].text = "Stress Index"
 
     for geno, value in geno_rank.items():
-        row_cells = table.add_row().cells
-        row_cells[0].text = str(geno)
-        row_cells[1].text = f"{value:.3f}"
+        row = table.add_row().cells
+        row[0].text = str(geno)
+        row[1].text = f"{value:.3f}"
 
-    doc.add_heading("4. Stress Classification", level=1)
+    doc.add_heading("5. Stress Classification", level=1)
     low = df_result[df_result["Stress_Index"] < 0.4]["Genotype"].unique()
     mid = df_result[
         (df_result["Stress_Index"] >= 0.4) & (df_result["Stress_Index"] < 0.7)
     ]["Genotype"].unique()
     high = df_result[df_result["Stress_Index"] >= 0.7]["Genotype"].unique()
 
+    doc.add_paragraph("Low stress: " + ", ".join(low))
+    doc.add_paragraph("Moderate stress response: " + ", ".join(mid))
+    doc.add_paragraph("High stress (sensitive genotypes): " + ", ".join(high))
+
+    doc.add_heading("6. Discussion", level=1)
     doc.add_paragraph(
-        "Low stress (tolerant): " + ", ".join(low)
-    )
-    doc.add_paragraph("Moderate stress: " + ", ".join(mid))
-    doc.add_paragraph(
-        "High stress (sensitive): " + ", ".join(high)
+        "Results indicate clear differentiation among genotypes under drought stress conditions. "
+        "Genotypes with lower Stress Index values maintained higher biomass and are therefore "
+        "strong candidates for drought tolerance breeding programs."
     )
 
-    doc.add_heading("5. Discussion", level=1)
+    doc.add_heading("7. Conclusion", level=1)
     doc.add_paragraph(
-        "Genotypes with lower Stress Index values demonstrated higher drought tolerance, "
-        "indicating stronger biomass retention under stress conditions. "
-        "These genotypes are recommended for breeding programs targeting drought resilience."
-    )
-
-    doc.add_heading("6. Conclusion", level=1)
-    doc.add_paragraph(
-        "The stress analysis successfully differentiated genotype performance under drought conditions. "
-        "Selected elite genotypes show potential for future breeding improvement."
+        "The Stress Index effectively discriminated genotypic responses under drought conditions. "
+        "This approach provides a reliable framework for selecting drought-tolerant germplasm."
     )
 
     buffer = io.BytesIO()
