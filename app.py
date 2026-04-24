@@ -204,14 +204,14 @@ if st.button("Run Full Analysis Demo"):
         ),
         use_container_width=True,
     )
+st.subheader("🧬 Stress Classification by Genotype")
+st.caption("Click each category to explore grouped genotypes")
 
-    tab1, tab2, tab3 = st.tabs(
-        [
-            "🟢 Low Stress",
-            "🟡 Moderate Stress",
-            "🔴 High Stress",
-        ]
-    )
+    tab1, tab2, tab3 = st.tabs([
+    "🟢 Low Stress (click to expand)",
+    "🟡 Moderate Stress (click to expand)",
+    "🔴 High Stress (click to expand)",
+])
 
     low = result[result["Stress_Index"] < 0.4]
     mid = result[(result["Stress_Index"] >= 0.4) & (result["Stress_Index"] < 0.7)]
