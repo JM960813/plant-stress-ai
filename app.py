@@ -12,8 +12,12 @@ plt.style.use("seaborn-v0_8-whitegrid")
 # ---------------------------
 st.set_page_config(page_title="PhytoStress AI", layout="wide")
 
-st.title("TEST CHANGE COLOR VERSION 123")
-st.caption("Plant stress phenotyping and breeding decision support system")
+st.markdown(
+    """
+# 🌱 PhytoStress AI  
+### Plant stress phenotyping & breeding decision support tool
+"""
+)
 
 st.subheader("🧠 Interpretation Guide")
 st.markdown(
@@ -144,10 +148,10 @@ def color_map(val):
 
 def stress_color(val):
     if val < 0.4:
-        return "background-color:#b6fcb6; color:black; font-weight:bold"
+        return "background-color:#4CAF50; color:white; font-weight:bold"
     if val < 0.7:
-        return "background-color:#fff3a6; color:black; font-weight:bold"
-    return "background-color:#ffb3b3; color:black; font-weight:bold"
+        return "background-color:#FFC107; color:black; font-weight:bold"
+    return "background-color:#F44336; color:white; font-weight:bold"
 
 
 # ---------------------------
@@ -192,15 +196,35 @@ if st.button("Run Full Analysis Demo"):
     else:
         st.error("High stress detected – Sensitive population")
 
-    st.subheader("📈 Stress Overview")
-    styled_df = result.sort_values("Stress_Index").style.map(
-        color_map,
-        subset=["Stress_Index"],
+    st.subheader("📊 Stress Overview & Classification")
+    st.dataframe(
+        result.sort_values("Stress_Index").style.map(
+            stress_color,
+            subset=["Stress_Index"],
+        ),
+        use_container_width=True,
     )
-    st.dataframe(styled_df, use_container_width=True)
 
-    st.subheader("🧪 Stress Classification")
-    st.dataframe(result[["Genotype", "Stress_Index", "Stress_Class"]])
+    tab1, tab2, tab3 = st.tabs(
+        [
+            "🟢 Low Stress",
+            "🟡 Moderate Stress",
+            "🔴 High Stress",
+        ]
+    )
+
+    low = result[result["Stress_Index"] < 0.4]
+    mid = result[(result["Stress_Index"] >= 0.4) & (result["Stress_Index"] < 0.7)]
+    high = result[result["Stress_Index"] >= 0.7]
+
+    with tab1:
+        st.dataframe(low)
+
+    with tab2:
+        st.dataframe(mid)
+
+    with tab3:
+        st.dataframe(high)
 
     # ---------------------------
     # RANKING (BREEDING BASE)
@@ -216,18 +240,25 @@ if st.button("Run Full Analysis Demo"):
     st.dataframe(styled_rank, use_container_width=True)
 
     fig, ax = plt.subplots()
-    bars = ax.bar(
-        rank_df["Genotype"],
-        rank_df["Stress_Index"],
-        color="#4C78A8",
-    )
+    df_plot = rank_df.sort_values("Stress_Index")
+
+    colors = []
+    for v in df_plot["Stress_Index"]:
+        if v < 0.4:
+            colors.append("#4CAF50")
+        elif v < 0.7:
+            colors.append("#FFC107")
+        else:
+            colors.append("#F44336")
+
+    bars = ax.bar(df_plot["Genotype"], df_plot["Stress_Index"], color=colors)
 
     for bar in bars:
-        height = bar.get_height()
+        h = bar.get_height()
         ax.text(
             bar.get_x() + bar.get_width() / 2,
-            height,
-            f"{height:.2f}",
+            h,
+            f"{h:.2f}",
             ha="center",
             va="bottom",
             fontsize=9,
@@ -235,18 +266,15 @@ if st.button("Run Full Analysis Demo"):
 
     ax.set_title("Stress Index by Genotype")
     ax.set_ylabel("Stress Index")
-    ax.set_xlabel("Genotype")
-    plt.xticks(rotation=45)
     st.pyplot(fig)
 
-    best = result.loc[result["Stress_Index"].idxmin()]
-    worst = result.loc[result["Stress_Index"].idxmax()]
+    best = result.loc[result["Stress_Index"].idxmin()]["Genotype"]
+    worst = result.loc[result["Stress_Index"].idxmax()]["Genotype"]
 
-    st.subheader("🏆 Performance Summary")
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Best Genotype", best["Genotype"])
-    col2.metric("Worst Genotype", worst["Genotype"])
-    col3.metric("Avg Stress", f"{avg_stress:.2f}")
+    st.markdown("## 🏁 Performance Summary")
+    st.info(f"🌱 Best genotype: {best}")
+    st.warning(f"⚠️ Worst genotype: {worst}")
+    st.success("✔ Dataset successfully classified under drought stress system")
 
     st.subheader("📄 Scientific Summary")
     best_genotypes = geno_rank[geno_rank < 0.4].index.tolist()
@@ -310,33 +338,6 @@ if st.button("Run Full Analysis Demo"):
     geno_rank.plot(kind="bar", ax=ax)
     st.pyplot(fig)
 
-    # ---------------------------
-    # TAB CLASSIFICATION
-    # ---------------------------
-    st.subheader("🧬 Stress Classification")
-
-    tab1, tab2, tab3 = st.tabs(
-        [
-            "🟢 Low Stress",
-            "🟡 Moderate Stress",
-            "🔴 High Stress",
-        ]
-    )
-
-    low = result[result["Stress_Index"] < 0.4]
-    mid = result[(result["Stress_Index"] >= 0.4) & (result["Stress_Index"] < 0.7)]
-    high = result[result["Stress_Index"] >= 0.7]
-
-    with tab1:
-        st.dataframe(low)
-
-    with tab2:
-        st.dataframe(mid)
-
-    with tab3:
-        st.dataframe(high)
-
-
 # ---------------------------
 # CSV INPUT
 # ---------------------------
@@ -368,15 +369,35 @@ if file is not None:
     else:
         st.error("High stress detected – Sensitive population")
 
-    st.subheader("📈 Stress Overview")
-    styled_df = result.sort_values("Stress_Index").style.map(
-        color_map,
-        subset=["Stress_Index"],
+    st.subheader("📊 Stress Overview & Classification")
+    st.dataframe(
+        result.sort_values("Stress_Index").style.map(
+            stress_color,
+            subset=["Stress_Index"],
+        ),
+        use_container_width=True,
     )
-    st.dataframe(styled_df, use_container_width=True)
 
-    st.subheader("🧪 Stress Classification")
-    st.dataframe(result[["Genotype", "Stress_Index", "Stress_Class"]])
+    tab1, tab2, tab3 = st.tabs(
+        [
+            "🟢 Low Stress",
+            "🟡 Moderate Stress",
+            "🔴 High Stress",
+        ]
+    )
+
+    low = result[result["Stress_Index"] < 0.4]
+    mid = result[(result["Stress_Index"] >= 0.4) & (result["Stress_Index"] < 0.7)]
+    high = result[result["Stress_Index"] >= 0.7]
+
+    with tab1:
+        st.dataframe(low)
+
+    with tab2:
+        st.dataframe(mid)
+
+    with tab3:
+        st.dataframe(high)
 
     geno_rank = result.groupby("Genotype")["Stress_Index"].mean().sort_values()
 
@@ -390,18 +411,25 @@ if file is not None:
     st.dataframe(styled_rank, use_container_width=True)
 
     fig, ax = plt.subplots()
-    bars = ax.bar(
-        rank_df["Genotype"],
-        rank_df["Stress_Index"],
-        color="#4C78A8",
-    )
+    df_plot = rank_df.sort_values("Stress_Index")
+
+    colors = []
+    for v in df_plot["Stress_Index"]:
+        if v < 0.4:
+            colors.append("#4CAF50")
+        elif v < 0.7:
+            colors.append("#FFC107")
+        else:
+            colors.append("#F44336")
+
+    bars = ax.bar(df_plot["Genotype"], df_plot["Stress_Index"], color=colors)
 
     for bar in bars:
-        height = bar.get_height()
+        h = bar.get_height()
         ax.text(
             bar.get_x() + bar.get_width() / 2,
-            height,
-            f"{height:.2f}",
+            h,
+            f"{h:.2f}",
             ha="center",
             va="bottom",
             fontsize=9,
@@ -409,19 +437,16 @@ if file is not None:
 
     ax.set_title("Stress Index by Genotype")
     ax.set_ylabel("Stress Index")
-    ax.set_xlabel("Genotype")
-    plt.xticks(rotation=45)
     st.pyplot(fig)
 
     st.write("### Breeding Insight")
 
-    best = result.loc[result["Stress_Index"].idxmin()]
-    worst = result.loc[result["Stress_Index"].idxmax()]
-    st.subheader("🏆 Performance Summary")
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Best Genotype", best["Genotype"])
-    col2.metric("Worst Genotype", worst["Genotype"])
-    col3.metric("Avg Stress", f"{avg_stress:.2f}")
+    best = result.loc[result["Stress_Index"].idxmin()]["Genotype"]
+    worst = result.loc[result["Stress_Index"].idxmax()]["Genotype"]
+    st.markdown("## 🏁 Performance Summary")
+    st.info(f"🌱 Best genotype: {best}")
+    st.warning(f"⚠️ Worst genotype: {worst}")
+    st.success("✔ Dataset successfully classified under drought stress system")
 
     st.subheader("📄 Scientific Summary")
     best_genotypes = geno_rank[geno_rank < 0.4].index.tolist()
