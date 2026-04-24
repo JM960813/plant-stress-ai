@@ -206,8 +206,7 @@ if st.button("Run Full Analysis Demo"):
     )
 st.subheader("🧬 Stress Classification by Genotype")
 st.caption("Click each category to explore grouped genotypes")
-
-    tab1, tab2, tab3 = st.tabs([
+tab1, tab2, tab3 = st.tabs([
     "🟢 Low Stress (click to expand)",
     "🟡 Moderate Stress (click to expand)",
     "🔴 High Stress (click to expand)",
