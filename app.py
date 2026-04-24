@@ -4,6 +4,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from docx import Document
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.shared import Inches
 
 plt.style.use("seaborn-v0_8-whitegrid")
 
@@ -91,22 +93,77 @@ def classify_stress(x):
     return "High"
 
 
-def generate_word_report(geno_rank, summary_text):
+def generate_word_report(geno_rank, summary_text, df_result):
     doc = Document()
 
-    doc.add_heading("PhytoStress AI Report", 0)
+    title = doc.add_heading("PhytoStress AI Report", 0)
+    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-    doc.add_heading("Genotype Ranking", level=1)
-    for geno, value in geno_rank.items():
-        doc.add_paragraph(f"{geno}: Stress Index = {value:.3f}")
+    subtitle = doc.add_paragraph(
+        "Drought Stress Phenotyping and Breeding Decision Support"
+    )
+    subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-    doc.add_heading("Scientific Summary", level=1)
+    doc.add_paragraph("\n")
+    doc.add_paragraph(
+        "Generated using physiological and biomass-based stress analysis framework."
+    )
+    doc.add_page_break()
+
+    doc.add_heading("Abstract", level=1)
     doc.add_paragraph(summary_text)
 
-    doc.add_heading("Interpretation", level=1)
+    doc.add_heading("1. Methodology", level=1)
     doc.add_paragraph(
-        "Stress Index represents plant response to drought stress based on biomass reduction. "
-        "Lower values indicate higher tolerance."
+        "Stress Index was calculated using biomass reduction under drought stress conditions: "
+        "1 - (Biomass_stress / Biomass_control). "
+        "Lower values indicate higher drought tolerance."
+    )
+    doc.add_paragraph(
+        "Physiological traits (SPAD and Fv/Fm) were used as complementary indicators of plant health."
+    )
+
+    doc.add_heading("2. Genotype Performance", level=1)
+    for i, (geno, value) in enumerate(geno_rank.items(), 1):
+        doc.add_paragraph(f"{i}. {geno} → Stress Index: {value:.3f}")
+
+    doc.add_heading("3. Summary Table", level=1)
+    table = doc.add_table(rows=1, cols=2)
+    hdr_cells = table.rows[0].cells
+    hdr_cells[0].text = "Genotype"
+    hdr_cells[1].text = "Stress Index"
+
+    for geno, value in geno_rank.items():
+        row_cells = table.add_row().cells
+        row_cells[0].text = str(geno)
+        row_cells[1].text = f"{value:.3f}"
+
+    doc.add_heading("4. Stress Classification", level=1)
+    low = df_result[df_result["Stress_Index"] < 0.4]["Genotype"].unique()
+    mid = df_result[
+        (df_result["Stress_Index"] >= 0.4) & (df_result["Stress_Index"] < 0.7)
+    ]["Genotype"].unique()
+    high = df_result[df_result["Stress_Index"] >= 0.7]["Genotype"].unique()
+
+    doc.add_paragraph(
+        "Low stress (tolerant): " + ", ".join(low)
+    )
+    doc.add_paragraph("Moderate stress: " + ", ".join(mid))
+    doc.add_paragraph(
+        "High stress (sensitive): " + ", ".join(high)
+    )
+
+    doc.add_heading("5. Discussion", level=1)
+    doc.add_paragraph(
+        "Genotypes with lower Stress Index values demonstrated higher drought tolerance, "
+        "indicating stronger biomass retention under stress conditions. "
+        "These genotypes are recommended for breeding programs targeting drought resilience."
+    )
+
+    doc.add_heading("6. Conclusion", level=1)
+    doc.add_paragraph(
+        "The stress analysis successfully differentiated genotype performance under drought conditions. "
+        "Selected elite genotypes show potential for future breeding improvement."
     )
 
     buffer = io.BytesIO()
@@ -318,7 +375,7 @@ if st.button("Run Full Analysis Demo"):
     )
     st.info(summary_text)
     st.subheader("📄 Download Full Report")
-    word_file = generate_word_report(geno_rank, summary_text)
+    word_file = generate_word_report(geno_rank, summary_text, result)
     st.download_button(
         label="⬇️ Download Word Report",
         data=word_file,
@@ -492,7 +549,7 @@ if file is not None:
     )
     st.info(summary_text)
     st.subheader("📄 Download Full Report")
-    word_file = generate_word_report(geno_rank, summary_text)
+    word_file = generate_word_report(geno_rank, summary_text, result)
     st.download_button(
         label="⬇️ Download Word Report",
         data=word_file,
