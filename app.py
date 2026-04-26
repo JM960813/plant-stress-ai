@@ -8,6 +8,7 @@ import streamlit as st
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Inches
+from openpyxl import Workbook
 
 plt.style.use("dark_background")
 
@@ -183,32 +184,32 @@ The model automatically classifies genotypes into Low, Moderate, and High stress
 # =========================
 # TEMPLATE DOWNLOAD
 # =========================
-def convert_df(df):
-    output = io.BytesIO()
-    with pd.ExcelWriter(output, engine="openpyxl") as writer:
-        df.to_excel(writer, index=False)
-    return output.getvalue()
-
-
 st.subheader("📥 Step 1: Download Template")
 
-template = pd.DataFrame(
-    {
-        "Genotype": ["H1", "H1", "H2"],
-        "FvFm": [0.75, 0.72, 0.60],
-        "SPAD": [40, 38, 30],
-        "Yield": [5.1, 4.9, 4.0],
-    }
+wb = Workbook()
+ws = wb.active
+ws.title = "template"
+
+ws.append(
+    [
+        "Genotype",
+        "Chlorophyll_Content",
+        "Photosystem_II_Efficiency",
+        "Yield",
+    ]
 )
 
+for i in range(1, 6):
+    ws.append([f"H{i}", "", "", ""])
+
 buffer = io.BytesIO()
-with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
-    template.to_excel(writer, index=False, sheet_name="data")
+wb.save(buffer)
+buffer.seek(0)
 
 st.download_button(
-    label="⬇ Download Excel Template",
-    data=buffer.getvalue(),
-    file_name="PhytoStress_template.xlsx",
+    label="📥 Download Template",
+    data=buffer,
+    file_name="phenotyping_template.xlsx",
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 )
 
@@ -658,6 +659,14 @@ if has_yield:
 # =========================
 # RANKING
 # =========================
+st.subheader("📊 Genotype Display Control")
+
+top_n = st.selectbox(
+    "Show top genotypes",
+    options=[10, 15, 20, 30, "All"],
+    index=0,
+)
+
 ranking = df.groupby("Genotype")["Stress_Index"].mean().sort_values()
 ranking_df = ranking.reset_index()
 ranking_df.columns = ["Genotype", "Stress_Index"]
@@ -667,6 +676,17 @@ worst = ranking.idxmax()
 fig1 = plot_stress(df)
 fig2 = plot_yield(df) if has_yield else None
 fig_tradeoff = plot_stress_vs_yield(df) if has_yield else None
+
+st.subheader("🔎 Search Genotype")
+
+genotype_list = df["Genotype"].unique()
+
+selected = st.selectbox(
+    "Find specific genotype",
+    genotype_list,
+)
+
+highlight = df[df["Genotype"] == selected]
 
 
 def medal(i):
@@ -1053,15 +1073,35 @@ st.subheader("🌿 Physiological Trait Relationship")
 
 fig2, ax2 = plt.subplots()
 
+if top_n == "All":
+    df_plot = df.copy()
+else:
+    df_plot = df[
+        df["Genotype"].isin(
+            df.groupby("Genotype")["Stress_Index"]
+            .mean()
+            .nsmallest(int(top_n))
+            .index
+        )
+    ]
+
 ax2.scatter(
-    df[SPAD_COL],
-    df[FVFM_COL],
-    c="green",
+    df_plot[SPAD_COL],
+    df_plot[FVFM_COL],
+    c=df_plot["Stress_Index"],
+    cmap="RdYlGn_r",
+)
+
+ax2.scatter(
+    highlight[SPAD_COL],
+    highlight[FVFM_COL],
+    color="blue",
+    s=200,
+    edgecolor="black",
 )
 
 ax2.set_xlabel("Chlorophyll Content")
 ax2.set_ylabel("Photosystem II Efficiency")
-ax2.set_title("Physiological Relationship")
 
 st.pyplot(fig2)
 
