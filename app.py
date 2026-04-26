@@ -10,7 +10,21 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Inches
 from openpyxl import Workbook
 
-plt.style.use("dark_background")
+plt.rcParams.update(
+    {
+        "figure.facecolor": "#f3faf3",
+        "axes.facecolor": "#f3faf3",
+        "savefig.facecolor": "#f3faf3",
+        "text.color": "black",
+        "axes.labelcolor": "black",
+        "axes.edgecolor": "black",
+        "axes.titlecolor": "black",
+        "xtick.color": "black",
+        "ytick.color": "black",
+        "grid.color": "gray",
+        "grid.alpha": 0.2,
+    }
+)
 
 # =========================
 # APP CONFIG
@@ -326,6 +340,30 @@ def trait_texts():
     )
 
 
+def style_matplotlib(ax):
+    import matplotlib.pyplot as plt
+
+    fig = plt.gcf()
+
+    fig.patch.set_facecolor("#f3faf3")
+    ax.set_facecolor("#f3faf3")
+
+    ax.tick_params(colors="black")
+    ax.title.set_color("black")
+    ax.xaxis.label.set_color("black")
+    ax.yaxis.label.set_color("black")
+    for spine in ax.spines.values():
+        spine.set_color("black")
+
+    ax.grid(True, color="gray", alpha=0.2)
+
+
+def style_colorbar(colorbar):
+    colorbar.ax.tick_params(colors="black")
+    colorbar.ax.yaxis.label.set_color("black")
+    colorbar.outline.set_edgecolor("black")
+
+
 def plot_stress(df):
     stress_df = df.groupby("Genotype", as_index=False)["Stress_Index"].mean()
     fig, ax = plt.subplots()
@@ -348,6 +386,7 @@ def plot_stress(df):
     ax.set_title("Stress Classification by Genotype")
     ax.set_xlabel("Genotype")
     ax.set_ylabel("Stress Index")
+    style_matplotlib(ax)
     return fig
 
 
@@ -369,6 +408,7 @@ def plot_yield(df):
             va="bottom",
         )
 
+    style_matplotlib(ax)
     return fig
 
 
@@ -392,6 +432,7 @@ def plot_stress_vs_yield(df):
     ax.set_xlabel("Stress Index")
     ax.set_ylabel("Yield")
     ax.set_title("Stress vs Yield Breeding Map")
+    style_matplotlib(ax)
     fig.savefig("tradeoff.png", dpi=300, bbox_inches="tight")
     return fig
 
@@ -928,7 +969,9 @@ It is recommended as the primary candidate for breeding programs.
     ax_breed.set_ylabel("Yield (Higher = Better)")
     ax_breed.set_title("Genotype Breeding Space")
 
-    plt.colorbar(scatter, label="Breeding Score")
+    style_matplotlib(ax_breed)
+    cbar = plt.colorbar(scatter, label="Breeding Score")
+    style_colorbar(cbar)
     st.pyplot(fig_breed)
 
 if has_yield:
@@ -1031,6 +1074,7 @@ for i in range(len(df)):
         df["Genotype"].iloc[i],
     )
 
+style_matplotlib(ax)
 st.pyplot(fig)
 
 st.subheader("🌡️ Integrated Stress Heatmap")
@@ -1052,7 +1096,10 @@ st.subheader("🌡️ Stress Heatmap (Genotype × Traits)")
 heat = df.groupby("Genotype")[[FVFM_COL, SPAD_COL, "Stress_Index"]].mean()
 
 fig, ax = plt.subplots()
-sns.heatmap(heat, annot=True, cmap="RdYlGn_r", ax=ax)
+heatmap = sns.heatmap(heat, annot=True, cmap="RdYlGn_r", ax=ax)
+style_matplotlib(ax)
+if heatmap.collections:
+    style_colorbar(heatmap.collections[0].colorbar)
 fig.savefig("heatmap.png", dpi=300, bbox_inches="tight")
 st.pyplot(fig)
 
@@ -1238,6 +1285,7 @@ ax2.scatter(
 
 ax2.set_xlabel("Chlorophyll Content")
 ax2.set_ylabel("Photosystem II Efficiency")
+style_matplotlib(ax2)
 
 st.pyplot(fig2)
 
