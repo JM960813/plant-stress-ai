@@ -1,6 +1,7 @@
 import io
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sns
 import streamlit as st
@@ -266,6 +267,19 @@ def color_scale(val):
 
 def color_class(val):
     return f"background-color: {color_scale(val)}"
+
+
+def safe_yield_available(df):
+    return (
+        "Yield" in df.columns
+        and df["Yield"].notna().any()
+        and df["Yield"].sum() > 0
+    )
+
+
+def run_yield_model(df):
+    if not safe_yield_available(df):
+        return None
 
 
 def get_color(si, y, df):
@@ -600,11 +614,19 @@ if uploaded_file or run_demo:
     st.subheader("📂 Simulated Dataset" if run_demo else "📋 Data Preview")
     st.dataframe(df)
 
-if "Yield" not in df.columns:
-    st.warning("Yield not found. Using estimated yield model.")
-    df["Yield"] = 0.5 * df[FVFM_COL] + 0.5 * df[SPAD_COL]
-
 if "Yield" in df.columns:
+    df["Yield"] = pd.to_numeric(df["Yield"], errors="coerce")
+    df = df.dropna(subset=["Yield"])
+else:
+    df["Yield"] = np.nan
+
+for col in df.columns:
+    if "yield" in col.lower() and "estimated" in col.lower():
+        df[col] = np.nan
+
+has_yield = "Yield" in df.columns and df["Yield"].notna().any()
+
+if has_yield:
     q33 = df["Yield"].quantile(0.33)
     q66 = df["Yield"].quantile(0.66)
 
@@ -643,8 +665,8 @@ ranking_df = ranking_df.sort_values("Stress_Index")
 best = ranking.idxmin()
 worst = ranking.idxmax()
 fig1 = plot_stress(df)
-fig2 = plot_yield(df) if "Yield" in df.columns else None
-fig_tradeoff = plot_stress_vs_yield(df) if "Yield" in df.columns else None
+fig2 = plot_yield(df) if has_yield else None
+fig_tradeoff = plot_stress_vs_yield(df) if has_yield else None
 
 
 def medal(i):
@@ -753,14 +775,14 @@ It is recommended as the primary candidate for breeding programs.
     plt.colorbar(scatter, label="Breeding Score")
     st.pyplot(fig_breed)
 
-if "Yield" in df.columns:
+if has_yield:
     st.subheader("🌾 Yield Analysis")
     run_yield_analysis(df)
     run_tradeoff(df)
 else:
-    st.info("Yield not provided. Yield analysis disabled.")
+    st.warning("Yield data not available. Yield analysis is disabled.")
 
-if "Breeding_Score" in df.columns and "Yield" in df.columns:
+if "Breeding_Score" in df.columns and has_yield:
     st.subheader("📄 Automated Discussion (Scientific Interpretation)")
 
     best = final_rank.idxmax()
@@ -1152,7 +1174,7 @@ This is the most important figure for selecting elite genotypes.
     doc.add_paragraph("Figure 3: Heatmap of physiological traits")
     doc.add_picture("heatmap.png", width=Inches(5.5))
 
-    if "Yield" in df.columns:
+    if has_yield:
         doc.add_paragraph("Figure 4: Stress vs Yield Trade-off")
         doc.add_picture("tradeoff.png", width=Inches(5.5))
 
@@ -1168,7 +1190,7 @@ This is the most important figure for selecting elite genotypes.
     doc.add_paragraph("High stress (sensitive): " + ", ".join(high))
 
     doc.add_heading("Discussion", level=1)
-    if "Breeding_Score" in df.columns and "Yield" in df.columns:
+    if "Breeding_Score" in df.columns and has_yield:
         report_best = final_rank.idxmax()
         report_worst = final_rank.idxmin()
         avg_stress = df["Stress_Index"].mean()
@@ -1202,7 +1224,7 @@ These results confirm that physiological indicators such as Fv/Fm, SPAD, and Str
         )
 
     doc.add_heading("Final Recommendation", level=1)
-    if "Breeding_Score" in df.columns and "Yield" in df.columns:
+    if "Breeding_Score" in df.columns and has_yield:
         report_best = final_rank.idxmax()
         report_worst = final_rank.idxmin()
         doc.add_paragraph(
