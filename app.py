@@ -79,15 +79,18 @@ div[data-testid="stDataFrame"] {
 
 /* Buttons */
 .stButton>button {
-    background-color: #22c55e;
+    background-color: #2E7D32;
     color: white;
-    border-radius: 10px;
-    padding: 0.5rem 1rem;
+    border-radius: 8px;
     border: none;
 }
 
 .stButton>button:hover {
-    background-color: #16a34a;
+    background-color: #1B5E20;
+}
+
+h1, h2, h3 {
+    color: inherit;
 }
 
 </style>
@@ -100,6 +103,10 @@ st.markdown(
 <style>
 /* fondo general más estable */
 .block-container {
+    background-color: transparent;
+}
+
+.main {
     background-color: transparent;
 }
 
@@ -453,17 +460,39 @@ def run_tradeoff(df):
     st.error(f"🔥 Sensitive genotypes (avoid): {', '.join(sensitive['Genotype'].unique())}")
 
 
-def generate_word_report(df, ranking, fig1, fig2):
+def generate_word_report(df):
+    has_yield = safe_yield_available(df)
     doc = Document()
 
+    ranking = df.groupby("Genotype")["Stress_Index"].mean().sort_values()
     best = ranking.idxmin()
     worst = ranking.idxmax()
 
     title = doc.add_heading("PhytoStress AI Report", 0)
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
     doc.add_paragraph("Drought Stress Phenotyping Report")
 
+    doc.add_heading("PhytoStress AI Report Explanation", level=1)
+    doc.add_paragraph(
+        """
+This report explains the results of the PhytoStress AI analysis in a simple and structured way.
+Each section describes what the graphs and tables mean and how to interpret genotype performance under drought stress conditions.
+"""
+    )
+
     doc.add_heading("1. Genotype Ranking", level=1)
+    doc.add_paragraph(
+        """
+This table shows the genotypes ranked by Stress Index.
+
+- Lower values = better drought tolerance
+- Higher values = more sensitive plants
+
+The best performing genotype is the one with the lowest Stress Index.
+"""
+    )
+    doc.add_heading("Genotype Ranking Table", level=1)
     table = doc.add_table(rows=1, cols=3)
     hdr = table.rows[0].cells
     hdr[0].text = "Rank"
@@ -476,18 +505,75 @@ def generate_word_report(df, ranking, fig1, fig2):
         row[1].text = str(geno)
         row[2].text = f"{val:.3f}"
 
+    doc.add_heading("2. Stress Index Explanation", level=1)
+    doc.add_paragraph(
+        """
+The Stress Index measures how much a plant is affected by drought.
+
+It is calculated using biomass reduction:
+Stress Index = 1 - (Stress / Control)
+
+- Values close to 0 → very tolerant plants
+- Values close to 1 → highly stressed plants
+"""
+    )
+
+    if "Yield" in df.columns:
+        doc.add_heading("3. Yield Performance", level=1)
+        doc.add_paragraph(
+            """
+Yield represents the productivity potential of each genotype.
+
+In this analysis, yield is interpreted relatively:
+- High yield = better performance in this experiment
+- Low yield = lower productivity under the same conditions
+"""
+        )
+
+    doc.add_heading("4. Heatmap Interpretation", level=1)
+    doc.add_paragraph(
+        """
+The heatmap shows relationships between Stress Index, SPAD, and Fv/Fm.
+
+- Green colors indicate better plant performance
+- Red colors indicate higher stress
+
+This helps visualize overall genotype behavior in a single view.
+"""
+    )
+
+    if "Yield" in df.columns:
+        doc.add_heading("5. Stress vs Yield Relationship", level=1)
+        doc.add_paragraph(
+            """
+This graph compares stress tolerance and yield at the same time.
+
+- Ideal genotypes appear with low stress and high yield
+- Poor genotypes show high stress and low yield
+
+This is the most important figure for selecting elite genotypes.
+"""
+        )
+
     fig1_path = "fig1.png"
     fig1.savefig(fig1_path, dpi=300, bbox_inches="tight")
 
-    doc.add_heading("2. Figures", level=1)
+    fig2_path = "fig2.png"
+    fig2.savefig(fig2_path, dpi=300, bbox_inches="tight")
+
+    doc.add_heading("Figures", level=1)
     doc.add_paragraph("Figure 1: Stress Index by Genotype")
     doc.add_picture(fig1_path, width=Inches(5.5))
 
-    if fig2 is not None:
-        fig2_path = "fig2.png"
-        fig2.savefig(fig2_path, dpi=300, bbox_inches="tight")
-        doc.add_paragraph("Figure 2: Yield by Genotype")
-        doc.add_picture(fig2_path, width=Inches(5.5))
+    doc.add_paragraph("Figure 2: SPAD vs Fv/Fm")
+    doc.add_picture(fig2_path, width=Inches(5.5))
+
+    doc.add_paragraph("Figure 3: Heatmap of physiological traits")
+    doc.add_picture("heatmap.png", width=Inches(5.5))
+
+    if has_yield:
+        doc.add_paragraph("Figure 4: Stress vs Yield Trade-off")
+        doc.add_picture("tradeoff.png", width=Inches(5.5))
 
     low = df[df["Stress_Index"] < 0.4]["Genotype"].unique()
     mid = df[
@@ -495,20 +581,81 @@ def generate_word_report(df, ranking, fig1, fig2):
     ]["Genotype"].unique()
     high = df[df["Stress_Index"] >= 0.7]["Genotype"].unique()
 
-    doc.add_heading("3. Stress Classification", level=1)
-    doc.add_paragraph("Low stress: " + ", ".join(low))
+    doc.add_heading("Stress Classification", level=1)
+    doc.add_paragraph("Low stress (tolerant): " + ", ".join(low))
     doc.add_paragraph("Moderate stress: " + ", ".join(mid))
-    doc.add_paragraph("High stress: " + ", ".join(high))
+    doc.add_paragraph("High stress (sensitive): " + ", ".join(high))
 
-    doc.add_heading("4. Final Recommendation", level=1)
-    doc.add_paragraph(
-        f"""
+    doc.add_heading("Discussion", level=1)
+    if "Breeding_Score" in df.columns and has_yield:
+        final_rank = df.groupby("Genotype")["Breeding_Score"].mean().sort_values(
+            ascending=False
+        )
+        report_best = final_rank.idxmax()
+        report_worst = final_rank.idxmin()
+        avg_stress = df["Stress_Index"].mean()
+
+        if avg_stress < 0.4:
+            stress_state = "low overall stress conditions"
+        elif avg_stress < 0.7:
+            stress_state = "moderate stress conditions"
+        else:
+            stress_state = "high stress conditions"
+
+        doc.add_paragraph(
+            f"""
+The evaluated genotypes were analyzed under {stress_state}, showing variability in physiological and agronomic performance.
+
+The breeding score analysis identified {report_best} as the most promising genotype, while {report_worst} showed the lowest performance.
+
+These results confirm that integrating Stress Index and Yield is effective for genotype selection under drought conditions.
+"""
+        )
+    else:
+        doc.add_paragraph(
+            f"""
+The evaluated genotypes were analyzed for physiological stress response under drought conditions.
+
+The ranking analysis identified {best} as the most promising genotype, while {worst} showed the lowest performance.
+
+These results confirm that physiological indicators such as Fv/Fm, SPAD, and Stress Index are effective for genotype selection under drought conditions.
+"""
+        )
+
+    doc.add_heading("Final Recommendation", level=1)
+    if "Breeding_Score" in df.columns and has_yield:
+        final_rank = df.groupby("Genotype")["Breeding_Score"].mean().sort_values(
+            ascending=False
+        )
+        report_best = final_rank.idxmax()
+        report_worst = final_rank.idxmin()
+        doc.add_paragraph(
+            f"""
+Best genotype: {report_best}
+Worst genotype: {report_worst}
+
+Best genotype is recommended because it combines:
+- Low Stress Index
+- High Yield
+- Strong overall Breeding Score
+
+This genotype represents the ideal candidate for drought tolerance selection.
+"""
+        )
+    else:
+        doc.add_paragraph(
+            f"""
 Best genotype: {best}
 Worst genotype: {worst}
 
-The best genotype is recommended because it shows the lowest stress response and the strongest drought tolerance.
+Best genotype is recommended because it combines:
+- Low stress response
+- High physiological stability
+- Strong drought tolerance
+
+This genotype represents the ideal candidate for drought tolerance selection.
 """
-    )
+        )
 
     buffer = io.BytesIO()
     doc.save(buffer)
@@ -1108,208 +1255,13 @@ st.pyplot(fig2)
 # =========================
 # WORD REPORT BUTTON
 # =========================
-if st.button("Generate Word Report"):
-    doc = Document()
-
-    title = doc.add_heading("PhytoStress AI Report", 0)
-    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-
-    doc.add_paragraph("Drought Stress Phenotyping Report")
-
-    doc.add_heading("PhytoStress AI Report Explanation", level=1)
-    doc.add_paragraph(
-        """
-This report explains the results of the PhytoStress AI analysis in a simple and structured way.
-Each section describes what the graphs and tables mean and how to interpret genotype performance under drought stress conditions.
-"""
-    )
-
-    doc.add_heading("1. Genotype Ranking", level=1)
-    doc.add_paragraph(
-        """
-This table shows the genotypes ranked by Stress Index.
-
-- Lower values = better drought tolerance
-- Higher values = more sensitive plants
-
-The best performing genotype is the one with the lowest Stress Index.
-"""
-    )
-    doc.add_heading("Genotype Ranking Table", level=1)
-    table = doc.add_table(rows=1, cols=3)
-    hdr = table.rows[0].cells
-    hdr[0].text = "Rank"
-    hdr[1].text = "Genotype"
-    hdr[2].text = "Stress Index"
-
-    for i, (geno, val) in enumerate(ranking.items(), 1):
-        row = table.add_row().cells
-        row[0].text = str(i)
-        row[1].text = str(geno)
-        row[2].text = f"{val:.3f}"
-
-    doc.add_heading("2. Stress Index Explanation", level=1)
-    doc.add_paragraph(
-        """
-The Stress Index measures how much a plant is affected by drought.
-
-It is calculated using biomass reduction:
-Stress Index = 1 - (Stress / Control)
-
-- Values close to 0 → very tolerant plants
-- Values close to 1 → highly stressed plants
-"""
-    )
-
-    if "Yield" in df.columns:
-        doc.add_heading("3. Yield Performance", level=1)
-        doc.add_paragraph(
-            """
-Yield represents the productivity potential of each genotype.
-
-In this analysis, yield is interpreted relatively:
-- High yield = better performance in this experiment
-- Low yield = lower productivity under the same conditions
-"""
-        )
-
-    doc.add_heading("4. Heatmap Interpretation", level=1)
-    doc.add_paragraph(
-        """
-The heatmap shows relationships between Stress Index, SPAD, and Fv/Fm.
-
-- Green colors indicate better plant performance
-- Red colors indicate higher stress
-
-This helps visualize overall genotype behavior in a single view.
-"""
-    )
-
-    if "Yield" in df.columns:
-        doc.add_heading("5. Stress vs Yield Relationship", level=1)
-        doc.add_paragraph(
-            """
-This graph compares stress tolerance and yield at the same time.
-
-- Ideal genotypes appear with low stress and high yield
-- Poor genotypes show high stress and low yield
-
-This is the most important figure for selecting elite genotypes.
-"""
-        )
-
-    fig1_path = "fig1.png"
-    fig1.savefig(fig1_path, dpi=300, bbox_inches="tight")
-
-    fig2_path = "fig2.png"
-    fig2.savefig(fig2_path, dpi=300, bbox_inches="tight")
-
-    doc.add_heading("Figures", level=1)
-    doc.add_paragraph("Figure 1: Stress Index by Genotype")
-    doc.add_picture(fig1_path, width=Inches(5.5))
-
-    doc.add_paragraph("Figure 2: SPAD vs Fv/Fm")
-    doc.add_picture(fig2_path, width=Inches(5.5))
-
-    doc.add_paragraph("Figure 3: Heatmap of physiological traits")
-    doc.add_picture("heatmap.png", width=Inches(5.5))
-
-    if has_yield:
-        doc.add_paragraph("Figure 4: Stress vs Yield Trade-off")
-        doc.add_picture("tradeoff.png", width=Inches(5.5))
-
-    low = df[df["Stress_Index"] < 0.4]["Genotype"].unique()
-    mid = df[
-        (df["Stress_Index"] >= 0.4) & (df["Stress_Index"] < 0.7)
-    ]["Genotype"].unique()
-    high = df[df["Stress_Index"] >= 0.7]["Genotype"].unique()
-
-    doc.add_heading("Stress Classification", level=1)
-    doc.add_paragraph("Low stress (tolerant): " + ", ".join(low))
-    doc.add_paragraph("Moderate stress: " + ", ".join(mid))
-    doc.add_paragraph("High stress (sensitive): " + ", ".join(high))
-
-    doc.add_heading("Discussion", level=1)
-    if "Breeding_Score" in df.columns and has_yield:
-        report_best = final_rank.idxmax()
-        report_worst = final_rank.idxmin()
-        avg_stress = df["Stress_Index"].mean()
-        avg_yield = df["Yield"].mean()
-
-        if avg_stress < 0.4:
-            stress_state = "low overall stress conditions"
-        elif avg_stress < 0.7:
-            stress_state = "moderate stress conditions"
-        else:
-            stress_state = "high stress conditions"
-
-        doc.add_paragraph(
-            f"""
-The evaluated genotypes were analyzed under {stress_state}, showing variability in physiological and agronomic performance.
-
-The breeding score analysis identified {report_best} as the most promising genotype, while {report_worst} showed the lowest performance.
-
-These results confirm that integrating Stress Index and Yield is effective for genotype selection under drought conditions.
-"""
-        )
-    else:
-        doc.add_paragraph(
-            f"""
-The evaluated genotypes were analyzed for physiological stress response under drought conditions.
-
-The ranking analysis identified {best} as the most promising genotype, while {worst} showed the lowest performance.
-
-These results confirm that physiological indicators such as Fv/Fm, SPAD, and Stress Index are effective for genotype selection under drought conditions.
-"""
-        )
-
-    doc.add_heading("Final Recommendation", level=1)
-    if "Breeding_Score" in df.columns and has_yield:
-        report_best = final_rank.idxmax()
-        report_worst = final_rank.idxmin()
-        doc.add_paragraph(
-            f"""
-Best genotype: {report_best}
-Worst genotype: {report_worst}
-
-Best genotype is recommended because it combines:
-- Low Stress Index
-- High Yield
-- Strong overall Breeding Score
-
-This genotype represents the ideal candidate for drought tolerance selection.
-"""
-        )
-    else:
-        doc.add_paragraph(
-            f"""
-Best genotype: {best}
-Worst genotype: {worst}
-
-Best genotype is recommended because it combines:
-- Low stress response
-- High physiological stability
-- Strong drought tolerance
-
-This genotype represents the ideal candidate for drought tolerance selection.
-"""
-        )
-
-    buffer = io.BytesIO()
-    doc.save(buffer)
-    buffer.seek(0)
-
+if st.button("📄 Generate Full Scientific Report"):
+    buffer = generate_word_report(df)
     st.download_button(
         "Download Word Report",
         buffer,
         file_name="PhytoStress_Report.docx",
     )
 
-if st.button("📄 Generate Full Report (1 Click)"):
-    report = generate_full_report(df, ranking)
-    st.download_button(
-        label="⬇ Download Word Report",
-        data=report,
-        file_name="PhytoStress_Full_Report.docx",
-        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    )
+if st.button("Generate full report (disabled)"):
+    pass
