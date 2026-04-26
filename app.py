@@ -50,34 +50,22 @@ st.markdown(
 <style>
 
 /* Fondo general */
-[data-testid="stAppViewContainer"] {
-    background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
-    color: white;
+.stApp {
+    background-color: #f3faf3;
 }
 
-/* Sidebar */
-[data-testid="stSidebar"] {
-    background-color: #0b1220;
-}
-
-/* Text color */
-html, body, [class*="css"]  {
-    color: white;
-}
-
-/* Cards estilo */
+/* Contenedores */
 .block-container {
-    padding: 2rem 3rem;
+    padding-top: 2rem;
+    padding-bottom: 2rem;
 }
 
-/* Dataframes */
-div[data-testid="stDataFrame"] {
-    background-color: #111827;
-    border-radius: 12px;
-    padding: 10px;
+/* Texto general */
+html, body, [class*="css"] {
+    color: #1b1b1b;
 }
 
-/* Buttons */
+/* Botones */
 .stButton>button {
     background-color: #2E7D32;
     color: white;
@@ -89,8 +77,9 @@ div[data-testid="stDataFrame"] {
     background-color: #1B5E20;
 }
 
+/* Títulos */
 h1, h2, h3 {
-    color: inherit;
+    color: #1f3d1f;
 }
 
 </style>
@@ -101,7 +90,7 @@ h1, h2, h3 {
 st.markdown(
     """
 <style>
-/* fondo general más estable */
+/* ajustes estables */
 .block-container {
     background-color: transparent;
 }
