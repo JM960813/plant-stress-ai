@@ -28,7 +28,11 @@ st.markdown(
 )
 
 st.title("🌾 Drought Stress Phenotyping & Breeding AI")
-st.info("Upload data or run demo to start analysis")
+st.markdown(
+    """
+### AI-based system for genotype selection under drought stress using physiological traits and yield modeling.
+"""
+)
 
 st.markdown("</div>", unsafe_allow_html=True)
 
@@ -99,7 +103,13 @@ p, label, div {
     unsafe_allow_html=True,
 )
 
-st.info("This tool integrates physiological traits with stress modeling to support drought-tolerant genotype selection.")
+st.info(
+    """
+This tool integrates physiological traits (Fv/Fm, SPAD) with stress modeling to support drought-tolerant genotype selection.
+
+It is crop-independent and can be applied to any plant species as long as the required physiological and yield data are provided.
+"""
+)
 
 with st.expander("📌 How to use this app"):
     st.markdown(
@@ -116,12 +126,6 @@ with st.expander("📌 How to use this app"):
 """
     )
 
-st.info(
-    """
-This tool is crop-independent.
-It can be used for any plant species as long as Fv/Fm, SPAD, and yield data are provided.
-"""
-)
 
 with st.expander("🧠 Interpretation Guide"):
     st.markdown(
@@ -156,7 +160,11 @@ The app combines both variables:
 """
     )
 
-st.info("The app automatically classifies genotypes into Low, Moderate, and High stress groups.")
+st.success(
+    """
+The model automatically classifies genotypes into Low, Moderate, and High stress groups based on Stress Index distribution.
+"""
+)
 
 
 # =========================
