@@ -244,12 +244,21 @@ def color_class(val):
 def explain_stress_vs_yield():
     st.markdown(
         """
-    ### ⚖️ Stress vs Yield Trade-off
+    ### ⚖️ Stress vs Yield Trade-off (Breeding Decision Map)
 
-    This plot shows the relationship between drought stress and productivity.
+    ### 🧠 How to interpret this figure
 
-    - Low stress = tolerant genotypes  
-    - High yield = productive genotypes  
+    This graph combines drought stress and productivity in one view.
+
+    - **X-axis:** Stress Index (higher = more sensitive genotypes)
+    - **Y-axis:** Yield (higher = more productive genotypes)
+
+    ### 📌 Breeding interpretation:
+    - 🟢 Upper-left → ideal genotypes (low stress + high yield)
+    - 🔴 Lower-right → poor performers (high stress + low yield)
+    - 🟡 Middle → intermediate performance
+
+    👉 This plot is used to select **elite breeding candidates**.
     """
     )
 
@@ -285,8 +294,21 @@ def plot_stress(df):
 def plot_yield(df):
     yield_vals = df.groupby("Genotype")["Yield"].mean()
     fig, ax = plt.subplots()
-    ax.bar(yield_vals.index, yield_vals.values, color="skyblue")
-    ax.set_title("Yield by Genotype")
+    bars = ax.bar(yield_vals.index, yield_vals.values, color="skyblue")
+    ax.set_title("Yield Performance by Genotype")
+    ax.set_xlabel("Genotype")
+    ax.set_ylabel("Yield (relative units)")
+
+    for bar in bars:
+        height = bar.get_height()
+        ax.text(
+            bar.get_x() + bar.get_width() / 2.0,
+            height,
+            f"{height:.2f}",
+            ha="center",
+            va="bottom",
+        )
+
     return fig
 
 
@@ -715,15 +737,15 @@ high = df[df["Stress_Index"] >= 0.7]
 st.subheader("📊 Stress Classification")
 st.markdown(
     """
-### 📊 Stress Classification Overview
+### 🧠 What this means
 
-Genotypes are grouped based on Stress Index distribution:
+Genotypes are grouped based on Stress Index values:
 
-- 🟢 Low stress → tolerant genotypes (preferred for breeding)
-- 🟡 Moderate stress → intermediate performance
+- 🟢 Low stress → drought tolerant (preferred for breeding)
+- 🟡 Moderate stress → intermediate response
 - 🔴 High stress → sensitive genotypes (not recommended)
 
-👉 This classification supports selection decisions in breeding programs.
+👉 Each point represents one genotype classified by stress level.
 """
 )
 st.dataframe(df.style.map(color_class, subset=["Stress_Index"]))
@@ -740,7 +762,27 @@ with tab3:
     st.dataframe(high)
 
 st.subheader("📊 Stress Classes Overview")
-st.bar_chart(df["Class"].value_counts())
+
+fig, ax = plt.subplots()
+
+colors = df["Stress_Index"].apply(
+    lambda x: "green" if x < 0.4 else "orange" if x < 0.7 else "red"
+)
+
+ax.scatter(df["Genotype"], df["Stress_Index"], c=colors)
+
+ax.set_title("Stress Classification by Genotype")
+ax.set_xlabel("Genotype")
+ax.set_ylabel("Stress Index")
+
+for i in range(len(df)):
+    ax.text(
+        df["Genotype"].iloc[i],
+        df["Stress_Index"].iloc[i],
+        df["Genotype"].iloc[i],
+    )
+
+st.pyplot(fig)
 
 st.subheader("🌡️ Integrated Stress Heatmap")
 st.markdown(
