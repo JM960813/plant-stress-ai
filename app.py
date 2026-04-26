@@ -87,6 +87,23 @@ div[data-testid="stDataFrame"] {
     unsafe_allow_html=True,
 )
 
+st.markdown(
+    """
+<style>
+/* fondo general más estable */
+.block-container {
+    background-color: transparent;
+}
+
+/* texto más legible en ambos modes */
+p, label, div {
+    color: inherit;
+}
+</style>
+""",
+    unsafe_allow_html=True,
+)
+
 st.info("This tool integrates physiological traits with stress modeling to support drought-tolerant genotype selection.")
 
 st.markdown(
@@ -280,7 +297,7 @@ st.subheader("🚀 Step 2: Try Demo (No file needed)")
 
 df = None
 
-if st.button("Run Demo Analysis"):
+if st.button("Run Demo"):
     df = pd.DataFrame(
         {
             "Genotype": ["H1", "H2", "H3", "H4"],
@@ -289,16 +306,18 @@ if st.button("Run Demo Analysis"):
             "Yield": [5.2, 4.8, 3.9, 4.1],
         }
     )
-    st.success("Demo dataset loaded successfully")
-    st.dataframe(df)
+    st.success("Demo loaded")
 
 if df is None:
-    file = st.file_uploader("Upload Excel file", type=["xlsx"])
+    st.subheader("📂 Upload your dataset")
+    file = st.file_uploader("Upload Excel file (.xlsx)", type=["xlsx"])
 
     if file is None:
         st.stop()
 
     df = pd.read_excel(file)
+    st.success("File uploaded successfully")
+    st.dataframe(df)
 
 required = ["Genotype", "FvFm", "SPAD"]
 
