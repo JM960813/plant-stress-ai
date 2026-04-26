@@ -30,7 +30,14 @@ st.markdown(
 st.title("🌾 Drought Stress Phenotyping & Breeding AI")
 st.markdown(
     """
-### AI-based system for genotype selection under drought stress using physiological traits and yield modeling.
+🌾 Drought Stress Phenotyping & Breeding AI System
+
+This tool evaluates plant physiological performance using:
+
+- Chlorophyll Content (leaf greenness)
+- Photosystem II Efficiency (photosynthetic function)
+
+These traits are used to estimate drought tolerance and support breeding decisions.
 """
 )
 
@@ -130,10 +137,15 @@ with st.expander("📌 How to use this app"):
 with st.expander("🧠 Interpretation Guide"):
     st.markdown(
         """
-### 🎨 Stress classification colors
-- 🟢 **Green (Low Stress)** → Healthy plants, high drought tolerance  
-- 🟡 **Yellow (Moderate Stress)** → Intermediate stress response  
-- 🔴 **Red (High Stress)** → Sensitive plants, low drought tolerance  
+### 🌿 Updated Trait Definitions
+
+- **Chlorophyll Content (formerly SPAD):**  
+  Measures leaf chlorophyll concentration and greenness. Higher values = healthier plants.
+
+- **Photosystem II Efficiency (formerly Fv/Fm):**  
+  Measures photosynthetic efficiency under stress conditions. Higher values = better physiological performance.
+
+👉 These two traits are complementary and describe plant health from different physiological perspectives.
 """
     )
 
@@ -203,11 +215,26 @@ st.download_button(
 # =========================
 # CORE ANALYSIS
 # =========================
+SPAD_COL = "Chlorophyll_Content"
+FVFM_COL = "Photosystem_II_Efficiency"
+
+
+def normalize_trait_columns(df):
+    df = df.copy()
+    df.columns = df.columns.str.strip()
+    return df.rename(
+        columns={
+            "SPAD": SPAD_COL,
+            "FvFm": FVFM_COL,
+        }
+    )
+
+
 def compute_stress(df):
     df = df.copy()
 
-    df["FvFm_norm"] = df["FvFm"] / df["FvFm"].max()
-    df["SPAD_norm"] = df["SPAD"] / df["SPAD"].max()
+    df["FvFm_norm"] = df[FVFM_COL] / df[FVFM_COL].max()
+    df["SPAD_norm"] = df[SPAD_COL] / df[SPAD_COL].max()
     df["Stress_Index"] = 1 - (df["FvFm_norm"] + df["SPAD_norm"]) / 2
 
     return df
@@ -241,6 +268,14 @@ def color_class(val):
     return f"background-color: {color_scale(val)}"
 
 
+def get_color(si, y, df):
+    if si < df["Stress_Index"].quantile(0.33) and y > df["Yield"].quantile(0.66):
+        return "green"
+    if si > df["Stress_Index"].quantile(0.66) and y < df["Yield"].quantile(0.33):
+        return "red"
+    return "orange"
+
+
 def explain_stress_vs_yield():
     st.markdown(
         """
@@ -263,20 +298,32 @@ def explain_stress_vs_yield():
     )
 
 
+def trait_texts():
+    st.markdown(
+        """
+### 🌿 Physiological Traits (Standardized Definitions)
+
+- **Chlorophyll Content (SPAD equivalent):**  
+  Indicates leaf chlorophyll concentration and greenness.
+
+- **Photosystem II Efficiency (Fv/Fm):**  
+  Measures photosynthetic performance under stress conditions.
+
+- **Stress Index:**  
+  Quantifies reduction in plant performance under drought stress.
+"""
+    )
+
+
 def plot_stress(df):
-    ranking = df.groupby("Genotype")["Stress_Index"].mean().sort_values()
+    stress_df = df.groupby("Genotype", as_index=False)["Stress_Index"].mean()
     fig, ax = plt.subplots()
 
-    colors = []
-    for value in ranking.values:
-        if value < 0.4:
-            colors.append("green")
-        elif value < 0.7:
-            colors.append("orange")
-        else:
-            colors.append("red")
+    colors = stress_df["Stress_Index"].apply(
+        lambda x: "green" if x < 0.4 else "orange" if x < 0.7 else "red"
+    )
 
-    bars = ax.bar(ranking.index, ranking.values, color=colors)
+    bars = ax.bar(stress_df["Genotype"], stress_df["Stress_Index"], color=colors)
     for bar in bars:
         height = bar.get_height()
         ax.text(
@@ -287,7 +334,9 @@ def plot_stress(df):
             va="bottom",
         )
 
-    ax.set_title("Stress Index by Genotype")
+    ax.set_title("Stress Classification by Genotype")
+    ax.set_xlabel("Genotype")
+    ax.set_ylabel("Stress Index")
     return fig
 
 
@@ -314,15 +363,79 @@ def plot_yield(df):
 
 def plot_stress_vs_yield(df):
     fig, ax = plt.subplots()
-    ax.scatter(df["Stress_Index"], df["Yield"])
+
+    colors = [
+        get_color(
+            df["Stress_Index"].iloc[i],
+            df["Yield"].iloc[i],
+            df,
+        )
+        for i in range(len(df))
+    ]
+
+    ax.scatter(df["Stress_Index"], df["Yield"], c=colors)
 
     for _, row in df.iterrows():
         ax.text(row["Stress_Index"], row["Yield"], row["Genotype"])
 
     ax.set_xlabel("Stress Index")
     ax.set_ylabel("Yield")
+    ax.set_title("Stress vs Yield Breeding Map")
     fig.savefig("tradeoff.png", dpi=300, bbox_inches="tight")
     return fig
+
+
+def run_yield_analysis(df):
+    yield_rank = df.groupby("Genotype")["Yield"].mean().sort_values(ascending=False)
+    fig = plot_yield(df)
+
+    st.subheader("🌾 Yield Ranking (Relative Performance)")
+    st.markdown(
+        """
+Yield classification is based on within-experiment distribution (percentiles), not fixed thresholds.
+"""
+    )
+    st.dataframe(yield_rank)
+
+    st.subheader("🌾 Yield Performance")
+    st.markdown(
+        """
+### 🌾 What this means
+
+This plot shows productivity differences among genotypes.
+
+- Higher bars = higher productivity  
+- Lower bars = reduced performance  
+
+👉 Yield helps balance **stress tolerance vs productivity trade-offs**.
+"""
+    )
+    st.pyplot(fig)
+
+    best_yield = yield_rank.idxmax()
+    worst_yield = yield_rank.idxmin()
+    st.subheader("🌾 Yield Insight")
+    st.success(f"Best yield genotype: {best_yield}")
+    st.error(f"Lowest yield genotype: {worst_yield}")
+
+
+def run_tradeoff(df):
+    explain_stress_vs_yield()
+    st.pyplot(plot_stress_vs_yield(df))
+
+    st.subheader("🧠 Breeding Interpretation")
+
+    elite = df[
+        (df["Stress_Index"] < df["Stress_Index"].quantile(0.33))
+        & (df["Yield"] > df["Yield"].quantile(0.66))
+    ]
+    sensitive = df[
+        (df["Stress_Index"] > df["Stress_Index"].quantile(0.66))
+        & (df["Yield"] < df["Yield"].quantile(0.33))
+    ]
+
+    st.success(f"🌱 Elite genotypes (recommended): {', '.join(elite['Genotype'].unique())}")
+    st.error(f"🔥 Sensitive genotypes (avoid): {', '.join(sensitive['Genotype'].unique())}")
 
 
 def generate_word_report(df, ranking, fig1, fig2):
@@ -468,13 +581,17 @@ elif uploaded_file is not None:
 else:
     st.stop()
 
-required = ["Genotype", "FvFm", "SPAD"]
+df = normalize_trait_columns(df)
+
+required = ["Genotype", FVFM_COL, SPAD_COL]
 
 if any(col not in df.columns for col in required):
-    st.error("Missing required columns: Genotype, FvFm, SPAD")
+    st.error(
+        f"Missing required columns: Genotype, {FVFM_COL}, {SPAD_COL}"
+    )
     st.stop()
 
-df = df.dropna(subset=["Genotype", "FvFm", "SPAD"])
+df = df.dropna(subset=["Genotype", FVFM_COL, SPAD_COL])
 df["Genotype"] = df["Genotype"].astype(str)
 
 df = compute_stress(df)
@@ -485,7 +602,7 @@ if uploaded_file or run_demo:
 
 if "Yield" not in df.columns:
     st.warning("Yield not found. Using estimated yield model.")
-    df["Yield"] = 0.5 * df["FvFm"] + 0.5 * df["SPAD"]
+    df["Yield"] = 0.5 * df[FVFM_COL] + 0.5 * df[SPAD_COL]
 
 if "Yield" in df.columns:
     q33 = df["Yield"].quantile(0.33)
@@ -638,54 +755,8 @@ It is recommended as the primary candidate for breeding programs.
 
 if "Yield" in df.columns:
     st.subheader("🌾 Yield Analysis")
-    yield_rank = df.groupby("Genotype")["Yield"].mean().sort_values(ascending=False)
-    st.subheader("🌾 Yield Ranking (Relative Performance)")
-    st.markdown(
-        """
-Yield classification is based on within-experiment distribution (percentiles), not fixed thresholds.
-"""
-    )
-    st.dataframe(yield_rank)
-
-    st.subheader("🌾 Yield Performance")
-    st.markdown(
-        """
-### 🌾 What this means
-
-This plot shows productivity differences among genotypes.
-
-- Higher bars = higher productivity  
-- Lower bars = reduced performance  
-
-👉 Yield helps balance **stress tolerance vs productivity trade-offs**.
-"""
-    )
-
-    st.pyplot(fig2)
-
-    best_yield = yield_rank.idxmax()
-    worst_yield = yield_rank.idxmin()
-
-    st.subheader("🌾 Yield Insight")
-    st.success(f"Best yield genotype: {best_yield}")
-    st.error(f"Lowest yield genotype: {worst_yield}")
-
-    explain_stress_vs_yield()
-    st.pyplot(fig_tradeoff)
-
-    st.subheader("🧠 Breeding Interpretation")
-
-    elite = df[
-        (df["Stress_Index"] < df["Stress_Index"].quantile(0.33))
-        & (df["Yield"] > df["Yield"].quantile(0.66))
-    ]
-    sensitive = df[
-        (df["Stress_Index"] > df["Stress_Index"].quantile(0.66))
-        & (df["Yield"] < df["Yield"].quantile(0.33))
-    ]
-
-    st.success(f"🌱 Elite genotypes (recommended): {', '.join(elite['Genotype'].unique())}")
-    st.error(f"🔥 Sensitive genotypes (avoid): {', '.join(sensitive['Genotype'].unique())}")
+    run_yield_analysis(df)
+    run_tradeoff(df)
 else:
     st.info("Yield not provided. Yield analysis disabled.")
 
@@ -800,7 +871,7 @@ This heatmap combines all physiological traits and stress response.
 )
 
 st.subheader("🌡️ Stress Heatmap (Genotype × Traits)")
-heat = df.groupby("Genotype")[["FvFm", "SPAD", "Stress_Index"]].mean()
+heat = df.groupby("Genotype")[[FVFM_COL, SPAD_COL, "Stress_Index"]].mean()
 
 fig, ax = plt.subplots()
 sns.heatmap(heat, annot=True, cmap="RdYlGn_r", ax=ax)
@@ -935,7 +1006,7 @@ st.pyplot(fig1)
 # =========================
 # SCATTER (AZUL - como ayer)
 # =========================
-st.subheader("🌿 Physiological Trait Relationship")
+st.subheader("🌿 Physiological Relationship: Chlorophyll Content vs Photosystem Efficiency")
 st.markdown(
     """
 ### 🌱 Biological meaning
@@ -946,24 +1017,30 @@ This graph shows plant physiological health.
 - Fv/Fm → photosynthetic efficiency  
 
 👉 Genotypes in the upper range indicate **healthier plants under stress**.
+
+### 🧠 Trait definition update
+
+- **Chlorophyll Content (SPAD):** proxy of leaf greenness and chlorophyll level  
+- **Photosystem II Efficiency (Fv/Fm):** indicator of photosynthetic performance and stress damage  
+
+👉 These traits are complementary but NOT equivalent.
 """
 )
 
-st.subheader("🌿 SPAD vs Fv/Fm")
+st.subheader("🌿 Physiological Trait Relationship")
 
 fig2, ax2 = plt.subplots()
-for g in df["Genotype"].unique():
-    sub = df[df["Genotype"] == g]
-    ax2.scatter(
-        sub["SPAD"],
-        sub["FvFm"],
-        label=g,
-    )
 
-ax2.set_title("Physiological Response by Genotype")
-ax2.set_xlabel("SPAD")
-ax2.set_ylabel("Fv/Fm")
-ax2.legend()
+ax2.scatter(
+    df[SPAD_COL],
+    df[FVFM_COL],
+    c="green",
+)
+
+ax2.set_xlabel("Chlorophyll Content")
+ax2.set_ylabel("Photosystem II Efficiency")
+ax2.set_title("Physiological Relationship")
+
 st.pyplot(fig2)
 
 # =========================
