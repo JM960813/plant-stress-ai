@@ -74,6 +74,19 @@ st.markdown(
     padding-bottom: 2rem;
 }
 
+div[data-testid="stDataFrame"] {
+    background-color: #ffffff;
+    border: 1px solid #d8e6d8;
+    border-radius: 14px;
+    padding: 0.5rem;
+    box-shadow: 0 8px 20px rgba(46, 125, 50, 0.06);
+}
+
+div[data-testid="stMarkdownContainer"] table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
 /* Texto general */
 html, body, [class*="css"] {
     color: #1b1b1b;
@@ -229,6 +242,13 @@ st.download_button(
 # =========================
 SPAD_COL = "Chlorophyll_Content"
 FVFM_COL = "Photosystem_II_Efficiency"
+LOW_STRESS_COLOR = "#2E7D32"
+MODERATE_STRESS_COLOR = "#F9A825"
+HIGH_STRESS_COLOR = "#C62828"
+DASHBOARD_BG = "#f3faf3"
+TEXT_COLOR = "#1b1b1b"
+BORDER_COLOR = "#d8e6d8"
+CARD_BG = "#ffffff"
 
 
 def normalize_trait_columns(df):
@@ -270,10 +290,10 @@ def generate_recommendation(avg):
 
 def color_scale(val):
     if val < 0.4:
-        return "#2ECC71"
+        return LOW_STRESS_COLOR
     if val < 0.7:
-        return "#F1C40F"
-    return "#E74C3C"
+        return MODERATE_STRESS_COLOR
+    return HIGH_STRESS_COLOR
 
 
 def color_class(val):
@@ -295,10 +315,10 @@ def run_yield_model(df):
 
 def get_color(si, y, df):
     if si < df["Stress_Index"].quantile(0.33) and y > df["Yield"].quantile(0.66):
-        return "green"
+        return LOW_STRESS_COLOR
     if si > df["Stress_Index"].quantile(0.66) and y < df["Yield"].quantile(0.33):
-        return "red"
-    return "orange"
+        return HIGH_STRESS_COLOR
+    return MODERATE_STRESS_COLOR
 
 
 def explain_stress_vs_yield():
@@ -362,6 +382,80 @@ def style_colorbar(colorbar):
     colorbar.ax.tick_params(colors="black")
     colorbar.ax.yaxis.label.set_color("black")
     colorbar.outline.set_edgecolor("black")
+
+
+def style_dataframe(styler):
+    return styler.set_table_styles(
+        [
+            {
+                "selector": "th",
+                "props": [
+                    ("background-color", DASHBOARD_BG),
+                    ("color", TEXT_COLOR),
+                    ("font-weight", "700"),
+                    ("border", f"1px solid {BORDER_COLOR}"),
+                    ("padding", "10px 12px"),
+                    ("text-align", "left"),
+                ],
+            },
+            {
+                "selector": "td",
+                "props": [
+                    ("background-color", CARD_BG),
+                    ("color", TEXT_COLOR),
+                    ("border", f"1px solid {BORDER_COLOR}"),
+                    ("padding", "9px 12px"),
+                ],
+            },
+            {
+                "selector": "tbody tr:hover",
+                "props": [("background-color", "#eef7ee")],
+            },
+        ]
+    )
+
+
+def style_score_cell(value):
+    return (
+        f"background-color: {color_scale(float(value))}; "
+        "color: white; font-weight: 700;"
+    )
+
+
+def style_breeding_score_cell(value):
+    return (
+        "background-color: rgba(46, 125, 50, 0.12); "
+        "color: #1b1b1b; font-weight: 700;"
+    )
+
+
+def style_genotype_cell(value, best=None, worst=None):
+    if best is not None and value == best:
+        return (
+            f"background-color: {LOW_STRESS_COLOR}; color: white; font-weight: 700;"
+        )
+    if worst is not None and value == worst:
+        return (
+            f"background-color: {HIGH_STRESS_COLOR}; color: white; font-weight: 700;"
+        )
+    return ""
+
+
+def render_styled_table(df_table, stress_col=None, score_col=None, best=None, worst=None):
+    styler = style_dataframe(df_table.style)
+    if stress_col and stress_col in df_table.columns:
+        styler = styler.map(style_score_cell, subset=[stress_col]).format(
+            {stress_col: "{:.3f}"}
+        )
+    if score_col and score_col in df_table.columns:
+        styler = styler.map(style_breeding_score_cell, subset=[score_col]).format(
+            {score_col: "{:.3f}"}
+        )
+    if "Genotype" in df_table.columns:
+        styler = styler.map(
+            lambda x: style_genotype_cell(x, best=best, worst=worst), subset=["Genotype"]
+        )
+    st.dataframe(styler, use_container_width=True)
 
 
 def plot_stress(df):
@@ -447,7 +541,11 @@ def run_yield_analysis(df):
 Yield classification is based on within-experiment distribution (percentiles), not fixed thresholds.
 """
     )
-    st.dataframe(yield_rank)
+    render_styled_table(
+        yield_rank.reset_index().rename(columns={"Yield": "Yield"}),
+        best=df.groupby("Genotype")["Stress_Index"].mean().sort_values().index[0],
+        worst=df.groupby("Genotype")["Stress_Index"].mean().sort_values().index[-1],
+    )
 
     st.subheader("🌾 Yield Performance")
     st.markdown(
@@ -769,7 +867,7 @@ if run_demo:
 elif uploaded_file is not None:
     df = pd.read_excel(uploaded_file)
     st.success("File uploaded successfully")
-    st.dataframe(df)
+    render_styled_table(df)
 else:
     st.stop()
 
@@ -790,7 +888,7 @@ df = compute_stress(df)
 
 if uploaded_file or run_demo:
     st.subheader("📂 Simulated Dataset" if run_demo else "📋 Data Preview")
-    st.dataframe(df)
+    render_styled_table(df)
 
 if "Yield" in df.columns:
     df["Yield"] = pd.to_numeric(df["Yield"], errors="coerce")
@@ -817,10 +915,10 @@ if has_yield:
 
     def yield_color(x):
         if x >= q66:
-            return "#2ECC71"
+            return LOW_STRESS_COLOR
         if x >= q33:
-            return "#F1C40F"
-        return "#E74C3C"
+            return MODERATE_STRESS_COLOR
+        return HIGH_STRESS_COLOR
 
     df["Yield_Class"] = df["Yield"].apply(yield_class)
     df["Stress_norm"] = 1 - (
@@ -879,11 +977,15 @@ st.subheader("🏆 Genotype Ranking")
 for i, row in enumerate(ranking_df.itertuples()):
     color = color_scale(row.Stress_Index)
     st.markdown(
-        f"<div style='padding:8px;background-color:{color}22;border-radius:8px'>"
+        f"<div style='padding:10px 12px;background-color:{color}18;border:1px solid {color}; border-radius:12px; margin-bottom:6px;'>"
         f"{medal(i)} <b>{row.Genotype}</b> → {row.Stress_Index:.3f}"
         f"</div>",
         unsafe_allow_html=True,
     )
+
+ranking_table = ranking_df.copy()
+ranking_table.insert(0, "Rank", range(1, len(ranking_table) + 1))
+render_styled_table(ranking_table, stress_col="Stress_Index", best=best, worst=worst)
 
 st.subheader("🥇 Breeding Recommendation")
 
@@ -917,7 +1019,10 @@ Genotype {best} shows superior drought tolerance and is the strongest candidate 
 if "Breeding_Score" in df.columns:
     st.subheader("🏆 Final Breeding Score Ranking")
     final_rank = df.groupby("Genotype")["Breeding_Score"].mean().sort_values(ascending=False)
-    st.dataframe(final_rank)
+    render_styled_table(
+        final_rank.reset_index().rename(columns={"Breeding_Score": "Breeding_Score"}),
+        score_col="Breeding_Score",
+    )
     best_genotype = final_rank.idxmax()
     st.success(
         f"""
@@ -949,13 +1054,13 @@ It is recommended as the primary candidate for breeding programs.
     for _, row in df.iterrows():
         if row["Breeding_Score"] >= elite_cut:
             label = "🟢 Elite"
-            color = "green"
+            color = LOW_STRESS_COLOR
         elif row["Breeding_Score"] >= poor_cut:
             label = "🟡 Good"
-            color = "orange"
+            color = MODERATE_STRESS_COLOR
         else:
             label = "🔴 Poor"
-            color = "red"
+            color = HIGH_STRESS_COLOR
 
         ax_breed.text(
             row["Stress_Index"],
@@ -1040,25 +1145,25 @@ Genotypes are grouped based on Stress Index values:
 👉 Each point represents one genotype classified by stress level.
 """
 )
-st.dataframe(df.style.map(color_class, subset=["Stress_Index"]))
+render_styled_table(df, stress_col="Stress_Index", best=best, worst=worst)
 
 tab1, tab2, tab3 = st.tabs(["🟢 Low", "🟡 Moderate", "🔴 High"])
 
 with tab1:
-    st.dataframe(low)
+    render_styled_table(low, stress_col="Stress_Index", best=best, worst=worst)
 
 with tab2:
-    st.dataframe(mid)
+    render_styled_table(mid, stress_col="Stress_Index", best=best, worst=worst)
 
 with tab3:
-    st.dataframe(high)
+    render_styled_table(high, stress_col="Stress_Index", best=best, worst=worst)
 
 st.subheader("📊 Stress Classes Overview")
 
 fig, ax = plt.subplots()
 
 colors = df["Stress_Index"].apply(
-    lambda x: "green" if x < 0.4 else "orange" if x < 0.7 else "red"
+    lambda x: LOW_STRESS_COLOR if x < 0.4 else MODERATE_STRESS_COLOR if x < 0.7 else HIGH_STRESS_COLOR
 )
 
 ax.scatter(df["Genotype"], df["Stress_Index"], c=colors)
