@@ -1,26 +1,73 @@
-import streamlit as st
-import pandas as pd
-import matplotlib.pyplot as plt
 import io
-from docx import Document
-from docx.shared import Inches
-from docx.enum.text import WD_ALIGN_PARAGRAPH
 
+import matplotlib.pyplot as plt
+import pandas as pd
+import streamlit as st
+from docx import Document
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.shared import Inches
+
+# =========================
+# APP CONFIG
+# =========================
 st.set_page_config(page_title="Plant Stress AI", layout="wide")
 
 st.title("🌱 Plant Stress AI Analyzer")
 
 st.markdown(
     """
-**Drought stress analysis platform**
+### Drought stress phenotyping tool
 
-- Fv/Fm → Photosynthetic efficiency  
-- SPAD → Chlorophyll content  
-- Stress Index → Computed drought response indicator  
+Upload your Excel file with:
+- Genotype
+- FvFm
+- SPAD
+
+The app will calculate Stress Index, rank genotypes, and generate a scientific report.
 """
 )
 
+st.markdown(
+    """
+## 🧠 Interpretation Guide
 
+### 🎨 Stress classification colors
+- 🟢 **Green (Low Stress)** → Healthy plants, high drought tolerance  
+- 🟡 **Yellow (Moderate Stress)** → Intermediate stress response  
+- 🔴 **Red (High Stress)** → Sensitive plants, low drought tolerance  
+
+---
+
+## 🌿 What do the variables mean?
+
+### 📊 Fv/Fm (Photosynthetic efficiency)
+- Measures how efficiently the plant is doing photosynthesis  
+- Higher values = healthier plant  
+- Lower values = stress damage in photosystem II  
+
+### 🍃 SPAD (Chlorophyll content)
+- Estimates chlorophyll level in leaves  
+- Higher SPAD = greener, healthier leaves  
+- Lower SPAD = nutrient or stress limitation  
+
+---
+
+## 🧪 Stress Index (what the app calculates)
+The app combines both variables:
+
+**Higher Stress Index = more drought stress**
+
+- Close to 0 → tolerant genotype  
+- Close to 1 → sensitive genotype  
+"""
+)
+
+st.info("The app automatically classifies genotypes into Low, Moderate, and High stress groups.")
+
+
+# =========================
+# TEMPLATE DOWNLOAD
+# =========================
 def convert_df(df):
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
@@ -28,17 +75,7 @@ def convert_df(df):
     return output.getvalue()
 
 
-st.subheader("📥 Download Required Excel Template")
-
-st.markdown(
-    """
-Fill in this template with your experimental data:
-
-- **Genotype** → e.g., H1, H2, H3  
-- **FvFm** → Photosynthetic efficiency  
-- **SPAD** → Chlorophyll content  
-"""
-)
+st.subheader("📥 Download Excel Template")
 
 template = pd.DataFrame(
     {
@@ -49,192 +86,148 @@ template = pd.DataFrame(
 )
 
 st.download_button(
-    label="Download Excel Template",
+    "Download Template",
     data=convert_df(template),
     file_name="plant_stress_template.xlsx",
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 )
 
 
-def generate_word_report(geno_rank, summary_text, df_result):
-    # =========================
-    # FIGURE 1: STRESS INDEX BARPLOT
-    # =========================
-    fig1, ax1 = plt.subplots()
-
-    df_plot = geno_rank.reset_index()
-    df_plot.columns = ["Genotype", "Stress_Index"]
-
-    ax1.bar(df_plot["Genotype"], df_plot["Stress_Index"], color="#4CAF50")
-    ax1.set_title("Figure 1. Stress Index by Genotype")
-    ax1.set_ylabel("Stress Index")
-    plt.xticks(rotation=45)
-
-    fig1_path = "fig1.png"
-    fig1.savefig(fig1_path, dpi=300, bbox_inches="tight")
-    plt.close(fig1)
-
-    # =========================
-    # FIGURE 2: PHYSIOLOGY SCATTER
-    # =========================
-    fig2, ax2 = plt.subplots()
-
-    ax2.scatter(df_result["SPAD"], df_result["FvFm"], color="#4C78A8")
-
-    ax2.set_title("Figure 2. SPAD vs Fv/Fm Relationship")
-    ax2.set_xlabel("SPAD")
-    ax2.set_ylabel("Fv/Fm")
-
-    fig2_path = "fig2.png"
-    fig2.savefig(fig2_path, dpi=300, bbox_inches="tight")
-    plt.close(fig2)
-
-    # =========================
-    # WORD DOCUMENT
-    # =========================
-    doc = Document()
-
-    title = doc.add_heading("PhytoStress AI Report", 0)
-    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-
-    subtitle = doc.add_paragraph(
-        "Drought Stress Phenotyping and Genotype Evaluation"
-    )
-    subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
-
-    doc.add_paragraph("\n")
-    doc.add_paragraph(
-        "This report presents a physiological and stress-based evaluation of genotypes "
-        "under drought conditions using Fv/Fm, SPAD, and a derived Stress Index."
-    )
-
-    doc.add_page_break()
-
-    doc.add_heading("Abstract", level=1)
-    doc.add_paragraph(summary_text)
-
-    doc.add_heading("1. Introduction", level=1)
-    doc.add_paragraph(
-        "Drought stress is one of the major limiting factors in crop productivity. "
-        "Physiological traits such as chlorophyll content (SPAD) and photosynthetic efficiency (Fv/Fm) "
-        "provide insight into plant performance under stress conditions."
-    )
-
-    doc.add_heading("2. Methodology", level=1)
-    doc.add_paragraph(
-        "The Stress Index was calculated as: 1 - (normalized Fv/Fm + normalized SPAD) / 2. "
-        "Lower values indicate higher drought tolerance."
-    )
-
-    doc.add_heading("3. Results", level=1)
-    doc.add_heading("3.1 Genotype Performance", level=2)
-
-    for i, (geno, val) in enumerate(geno_rank.items(), 1):
-        doc.add_paragraph(f"{i}. {geno}: {val:.3f}")
-
-    doc.add_heading("Figures", level=1)
-    doc.add_paragraph("Figure 1. Stress Index by Genotype")
-    doc.add_picture(fig1_path, width=Inches(5.8))
-
-    doc.add_paragraph("Figure 2. Relationship between SPAD and Fv/Fm")
-    doc.add_picture(fig2_path, width=Inches(5.8))
-
-    doc.add_heading("4. Stress Classification", level=1)
-
-    low = df_result[df_result["Stress_Index"] < 0.4]["Genotype"].unique()
-    mid = df_result[
-        (df_result["Stress_Index"] >= 0.4) & (df_result["Stress_Index"] < 0.7)
-    ]["Genotype"].unique()
-    high = df_result[df_result["Stress_Index"] >= 0.7]["Genotype"].unique()
-
-    doc.add_paragraph("Low stress (tolerant): " + ", ".join(low))
-    doc.add_paragraph("Moderate stress: " + ", ".join(mid))
-    doc.add_paragraph("High stress (sensitive): " + ", ".join(high))
-
-    doc.add_heading("5. Discussion", level=1)
-    doc.add_paragraph(
-        "Genotypes with lower Stress Index values exhibited higher drought tolerance, "
-        "indicating better maintenance of physiological performance under stress conditions."
-    )
-
-    doc.add_heading("6. Conclusion", level=1)
-    doc.add_paragraph(
-        "The Stress Index effectively discriminated genotype performance under drought stress. "
-        "This framework provides a reliable tool for selection of drought-tolerant germplasm."
-    )
-
-    buffer = io.BytesIO()
-    doc.save(buffer)
-    buffer.seek(0)
-
-    return buffer
-
 # =========================
 # UPLOAD
 # =========================
-uploaded_file = st.file_uploader("Upload Excel file (.xlsx)", type=["xlsx"])
+file = st.file_uploader("Upload Excel file", type=["xlsx"])
 
-if uploaded_file:
-    df = pd.read_excel(uploaded_file)
 
-    required = ["Genotype", "FvFm", "SPAD"]
-    missing = [c for c in required if c not in df.columns]
+# =========================
+# CORE ANALYSIS
+# =========================
+def compute_stress(df):
+    df = df.copy()
 
-    if missing:
-        st.error(f"Missing columns: {missing}")
-        st.stop()
-
-    # =========================
-    # STRESS INDEX
-    # =========================
     df["FvFm_norm"] = df["FvFm"] / df["FvFm"].max()
     df["SPAD_norm"] = df["SPAD"] / df["SPAD"].max()
     df["Stress_Index"] = 1 - (df["FvFm_norm"] + df["SPAD_norm"]) / 2
 
-    geno_rank = df.groupby("Genotype")["Stress_Index"].mean().sort_values()
-    summary_text = (
-        "The objective of this study was to evaluate drought stress responses across genotypes "
-        "using physiological indicators and a computed Stress Index derived from Fv/Fm and SPAD."
-    )
+    return df
+
+
+def classify(x):
+    if x < 0.4:
+        return "Low Stress (Tolerant)"
+    if x < 0.7:
+        return "Moderate Stress"
+    return "High Stress (Sensitive)"
+
+
+def generate_recommendation(avg):
+    if avg < 0.4:
+        return "Best performing group: highly drought tolerant genotypes."
+    if avg < 0.7:
+        return "Intermediate performance: moderate tolerance observed."
+    return "Low performance: genotypes are sensitive to drought stress."
+
+
+# =========================
+# MAIN APP FLOW
+# =========================
+if file:
+    df = pd.read_excel(file)
+
+    required = ["Genotype", "FvFm", "SPAD"]
+
+    if any(col not in df.columns for col in required):
+        st.error("Missing required columns: Genotype, FvFm, SPAD")
+        st.stop()
+
+    df = compute_stress(df)
 
     # =========================
-    # TABLE
+    # RANKING
     # =========================
-    st.subheader("📊 Genotype Ranking")
-    st.dataframe(geno_rank)
+    ranking = df.groupby("Genotype")["Stress_Index"].mean().sort_values()
+
+    st.subheader("🏆 Genotype Ranking (Lower = Better)")
+    st.dataframe(ranking)
 
     # =========================
-    # BAR CHART (GREEN STYLE - como ayer)
+    # CLASSIFICATION
     # =========================
-    st.subheader("📉 Stress Index Comparison")
+    df["Class"] = df["Stress_Index"].apply(classify)
 
-    fig, ax = plt.subplots()
-    ax.bar(geno_rank.index, geno_rank.values, color="#4CAF50")
-    ax.set_title("Stress Index by Genotype")
-    ax.set_ylabel("Stress Index")
+    st.subheader("📊 Stress Classification")
+    st.dataframe(df)
+
+    # =========================
+    # RECOMMENDATION
+    # =========================
+    st.subheader("💡 Recommendation")
+    st.write(generate_recommendation(df["Stress_Index"].mean()))
+
+    # =========================
+    # BAR PLOT (GREEN - como ayer)
+    # =========================
+    st.subheader("📉 Stress Index by Genotype")
+
+    fig1, ax1 = plt.subplots()
+    ax1.bar(ranking.index, ranking.values, color="#4CAF50")
+    ax1.set_ylabel("Stress Index")
+    ax1.set_title("Genotype Performance")
     plt.xticks(rotation=45)
-    st.pyplot(fig)
-    plt.close(fig)
+    st.pyplot(fig1)
 
     # =========================
-    # SCATTER (BLUE STYLE - como ayer)
+    # SCATTER (AZUL - como ayer)
     # =========================
-    st.subheader("🌿 Physiological Relationship")
+    st.subheader("🌿 SPAD vs Fv/Fm")
 
     fig2, ax2 = plt.subplots()
     ax2.scatter(df["SPAD"], df["FvFm"], color="#4C78A8")
     ax2.set_xlabel("SPAD")
     ax2.set_ylabel("Fv/Fm")
-    ax2.set_title("SPAD vs Fv/Fm")
+    ax2.set_title("Physiological relationship")
     st.pyplot(fig2)
-    plt.close(fig2)
 
+    # =========================
+    # WORD REPORT BUTTON
+    # =========================
     if st.button("Generate Word Report"):
-        report = generate_word_report(geno_rank, summary_text, df)
-        st.success("Report generated!")
+        doc = Document()
+
+        title = doc.add_heading("PhytoStress AI Report", 0)
+        title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+        doc.add_paragraph("Drought Stress Phenotyping Report")
+
+        doc.add_heading("Genotype Ranking", level=1)
+        for i, (g, v) in enumerate(ranking.items(), 1):
+            doc.add_paragraph(f"{i}. {g}: {v:.3f}")
+
+        fig1_path = "fig1.png"
+        fig1.savefig(fig1_path, dpi=300, bbox_inches="tight")
+        doc.add_picture(fig1_path, width=Inches(5.8))
+
+        fig2_path = "fig2.png"
+        fig2.savefig(fig2_path, dpi=300, bbox_inches="tight")
+        doc.add_picture(fig2_path, width=Inches(5.8))
+
+        low = df[df["Stress_Index"] < 0.4]["Genotype"].unique()
+        mid = df[
+            (df["Stress_Index"] >= 0.4) & (df["Stress_Index"] < 0.7)
+        ]["Genotype"].unique()
+        high = df[df["Stress_Index"] >= 0.7]["Genotype"].unique()
+
+        doc.add_heading("Stress Classification", level=1)
+        doc.add_paragraph("Low stress (tolerant): " + ", ".join(low))
+        doc.add_paragraph("Moderate stress: " + ", ".join(mid))
+        doc.add_paragraph("High stress (sensitive): " + ", ".join(high))
+
+        buffer = io.BytesIO()
+        doc.save(buffer)
+        buffer.seek(0)
+
         st.download_button(
             "Download Report",
-            report,
-            file_name="Plant_Stress_Report.docx",
-            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            buffer,
+            file_name="PhytoStress_Report.docx",
         )
