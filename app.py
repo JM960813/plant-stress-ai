@@ -27,13 +27,8 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.markdown(
-    """
-# 🌱 PhytoStress AI
-### 🌾 Drought Stress Phenotyping & Breeding Intelligence System
-
-"""
-)
+st.title("🌾 Drought Stress Phenotyping & Breeding AI")
+st.info("Upload data or run demo to start analysis")
 
 st.markdown("</div>", unsafe_allow_html=True)
 
@@ -106,10 +101,9 @@ p, label, div {
 
 st.info("This tool integrates physiological traits with stress modeling to support drought-tolerant genotype selection.")
 
-st.markdown(
-    """
-## 📌 How to use this app
-
+with st.expander("📌 How to use this app"):
+    st.markdown(
+        """
 1. Download the Excel template
 2. Fill in your experimental data:
    - Genotype (e.g. H1, H2...)
@@ -120,7 +114,7 @@ st.markdown(
 4. Click Run Analysis
 5. View results and download report
 """
-)
+    )
 
 st.info(
     """
@@ -129,19 +123,19 @@ It can be used for any plant species as long as Fv/Fm, SPAD, and yield data are 
 """
 )
 
-st.markdown(
-    """
-## 🧠 Interpretation Guide
-
+with st.expander("🧠 Interpretation Guide"):
+    st.markdown(
+        """
 ### 🎨 Stress classification colors
 - 🟢 **Green (Low Stress)** → Healthy plants, high drought tolerance  
 - 🟡 **Yellow (Moderate Stress)** → Intermediate stress response  
 - 🔴 **Red (High Stress)** → Sensitive plants, low drought tolerance  
+"""
+    )
 
----
-
-## 🌿 What do the variables mean?
-
+with st.expander("🌿 What do variables mean?"):
+    st.markdown(
+        """
 ### 📊 Fv/Fm (Photosynthetic efficiency)
 - Measures how efficiently the plant is doing photosynthesis  
 - Higher values = healthier plant  
@@ -152,9 +146,7 @@ st.markdown(
 - Higher SPAD = greener, healthier leaves  
 - Lower SPAD = nutrient or stress limitation  
 
----
-
-## 🧪 Stress Index (what the app calculates)
+### 🧪 Stress Index
 The app combines both variables:
 
 **Higher Stress Index = more drought stress**
@@ -162,7 +154,7 @@ The app combines both variables:
 - Close to 0 → tolerant genotype  
 - Close to 1 → sensitive genotype  
 """
-)
+    )
 
 st.info("The app automatically classifies genotypes into Low, Moderate, and High stress groups.")
 
@@ -293,11 +285,17 @@ def generate_full_report(df, ranking):
 # =========================
 # MAIN APP FLOW
 # =========================
-st.subheader("🚀 Step 2: Try Demo (No file needed)")
+col1, col2 = st.columns(2)
+
+with col1:
+    uploaded_file = st.file_uploader("📂 Upload Excel file (.xlsx)", type=["xlsx"])
+
+with col2:
+    run_demo = st.button("🚀 Run Demo")
 
 df = None
 
-if st.button("Run Demo"):
+if run_demo:
     df = pd.DataFrame(
         {
             "Genotype": ["H1", "H2", "H3", "H4"],
@@ -308,16 +306,12 @@ if st.button("Run Demo"):
     )
     st.success("Demo loaded")
 
-if df is None:
-    st.subheader("📂 Upload your dataset")
-    file = st.file_uploader("Upload Excel file (.xlsx)", type=["xlsx"])
-
-    if file is None:
-        st.stop()
-
-    df = pd.read_excel(file)
+elif uploaded_file is not None:
+    df = pd.read_excel(uploaded_file)
     st.success("File uploaded successfully")
     st.dataframe(df)
+else:
+    st.stop()
 
 required = ["Genotype", "FvFm", "SPAD"]
 
@@ -329,6 +323,10 @@ df = df.dropna(subset=["Genotype", "FvFm", "SPAD"])
 df["Genotype"] = df["Genotype"].astype(str)
 
 df = compute_stress(df)
+
+if uploaded_file or run_demo:
+    st.subheader("📊 Results")
+    st.write(df.head())
 
 if "Yield" not in df.columns:
     st.warning("Yield not found. Using estimated yield model.")
