@@ -34,35 +34,6 @@ st.set_page_config(page_title="Plant Stress AI", layout="wide")
 
 st.markdown(
     """
-<div style="
-    background-color: #ffffff;
-    padding: 15px;
-    border-radius: 12px;
-    border: 1px solid #d8e6d8;
-    box-shadow: 0 8px 20px rgba(46, 125, 50, 0.06);
-">
-""",
-    unsafe_allow_html=True,
-)
-
-st.title("? Drought Stress Phenotyping & Breeding AI")
-st.markdown(
-    """
-? Drought Stress Phenotyping & Breeding AI System
-
-This tool evaluates plant physiological performance using:
-
-- Chlorophyll Content (leaf greenness)
-- Photosystem II Efficiency (photosynthetic function)
-
-These traits are used to estimate drought tolerance and support breeding decisions.
-"""
-)
-
-st.markdown("</div>", unsafe_allow_html=True)
-
-st.markdown(
-    """
 <style>
 
 /* Fondo general */
@@ -111,7 +82,187 @@ h1, h2, h3 {
     color: #1f3d1f;
 }
 
+.hero-card {
+    background:
+        radial-gradient(circle at top right, rgba(168, 230, 163, 0.55), transparent 28%),
+        linear-gradient(135deg, #ffffff 0%, #eef7ee 52%, #e3f2e3 100%);
+    border: 1px solid #d8e6d8;
+    border-radius: 22px;
+    padding: 1.6rem 1.8rem;
+    box-shadow: 0 12px 30px rgba(46, 125, 50, 0.08);
+    margin-bottom: 1rem;
+    overflow: hidden;
+    position: relative;
+}
+
+.hero-card::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 18px;
+    background:
+        linear-gradient(90deg,
+            #2E7D32 0%,
+            #3c9140 18%,
+            #5aa65d 36%,
+            #7fbe6f 54%,
+            #a8d58d 72%,
+            #d4e9bb 100%);
+    opacity: 0.95;
+}
+
+.hero-badge {
+    display: inline-block;
+    font-size: 0.84rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #1f5c2b;
+    background: rgba(46, 125, 50, 0.10);
+    border: 1px solid rgba(46, 125, 50, 0.18);
+    border-radius: 999px;
+    padding: 0.35rem 0.8rem;
+    margin-bottom: 0.85rem;
+}
+
+.hero-title {
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1.08;
+    color: #17351d;
+    margin: 0 0 0.45rem 0;
+}
+
+.hero-subtitle {
+    font-size: 1rem;
+    line-height: 1.55;
+    color: #35523a;
+    max-width: 900px;
+    margin: 0 0 1rem 0;
+}
+
+.hero-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+}
+
+.hero-pill {
+    background: #ffffff;
+    border: 1px solid #d8e6d8;
+    border-radius: 999px;
+    padding: 0.5rem 0.85rem;
+    color: #24442a;
+    font-size: 0.92rem;
+    font-weight: 600;
+}
+
+.hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(250px, 0.9fr);
+    gap: 1rem;
+    align-items: start;
+}
+
+.hero-panel {
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid rgba(46, 125, 50, 0.12);
+    border-radius: 18px;
+    padding: 1rem 1rem 1.2rem 1rem;
+    backdrop-filter: blur(2px);
+}
+
+.hero-panel-title {
+    font-size: 0.86rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #2a5a33;
+    margin-bottom: 0.55rem;
+}
+
+.hero-mini-list {
+    display: grid;
+    gap: 0.6rem;
+}
+
+.hero-mini-item {
+    background: #ffffff;
+    border: 1px solid #d8e6d8;
+    border-radius: 14px;
+    padding: 0.7rem 0.8rem;
+    color: #224229;
+    font-size: 0.92rem;
+}
+
+.hero-mini-item strong {
+    display: block;
+    color: #17351d;
+    margin-bottom: 0.2rem;
+}
+
+.section-card {
+    background: rgba(255, 255, 255, 0.78);
+    border: 1px solid #d8e6d8;
+    border-radius: 20px;
+    padding: 1.05rem 1.1rem 1.2rem 1.1rem;
+    box-shadow: 0 10px 24px rgba(46, 125, 50, 0.05);
+    margin: 0.9rem 0 1.15rem 0;
+}
+
+.section-kicker {
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #2d6a36;
+    margin-bottom: 0.45rem;
+}
+
+.metrics-card {
+    background: linear-gradient(180deg, #ffffff 0%, #f7fbf7 100%);
+    border: 1px solid #d8e6d8;
+    border-radius: 18px;
+    padding: 0.8rem 0.9rem;
+    box-shadow: 0 10px 22px rgba(46, 125, 50, 0.05);
+}
+
+.metrics-note {
+    color: #47614c;
+    font-size: 0.9rem;
+    margin: 0.25rem 0 0.8rem 0;
+}
+
+@media (max-width: 900px) {
+    .hero-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 </style>
+""",
+    unsafe_allow_html=True,
+)
+
+st.markdown(
+    """
+<div class="hero-card">
+  <div class="hero-badge">🌾 Plant Phenotyping Dashboard</div>
+  <div class="hero-title">🌱 Drought Stress Phenotyping &amp; Breeding AI</div>
+  <div class="hero-subtitle">
+    A crop-oriented scientific dashboard for identifying drought-tolerant genotypes
+    using <b>Chlorophyll Content</b>, <b>Photosystem II Efficiency</b>, and
+    integrated stress-response modeling.
+  </div>
+  <div class="hero-pills">
+    <div class="hero-pill">🍃 Chlorophyll Content</div>
+    <div class="hero-pill">🌿 Photosystem II Efficiency</div>
+    <div class="hero-pill">🧪 Stress Index</div>
+    <div class="hero-pill">🌱 Breeding Decision Support</div>
+  </div>
+</div>
 """,
     unsafe_allow_html=True,
 )
@@ -145,7 +296,7 @@ It is crop-independent and can be applied to any plant species as long as the re
 """
 )
 
-with st.expander("?? How to use this app"):
+with st.expander("📌 How to use this app"):
     st.markdown(
         """
 1. Download the Excel template
@@ -161,7 +312,7 @@ with st.expander("?? How to use this app"):
     )
 
 
-with st.expander("?? Interpretation Guide"):
+with st.expander("🧠 Interpretation Guide"):
     st.markdown(
         """
 ### Updated Trait Definitions
@@ -172,11 +323,11 @@ with st.expander("?? Interpretation Guide"):
 - **Photosystem II Efficiency (formerly Fv/Fm):**  
   Measures photosynthetic efficiency under stress conditions. Higher values = better physiological performance.
 
-?? These two traits are complementary and describe plant health from different physiological perspectives.
+👉 These two traits are complementary and describe plant health from different physiological perspectives.
 """
     )
 
-with st.expander("?? What do variables mean?"):
+with st.expander("🌿 What do variables mean?"):
     st.markdown(
         """
 ### Photosystem II Efficiency
@@ -194,8 +345,8 @@ The app combines both normalized physiological variables:
 
 **Stress Index = 1 - (normalized Chlorophyll Content + normalized Photosystem II Efficiency) / 2**
 
-- Close to 0 ? tolerant genotype  
-- Close to 1 ? sensitive genotype  
+- Close to 0 → tolerant genotype  
+- Close to 1 → sensitive genotype  
 """
     )
 
@@ -483,6 +634,20 @@ def render_styled_table(
     st.dataframe(styler, use_container_width=True)
 
 
+def start_section(kicker):
+    st.markdown(
+        f"""
+<div class="section-card">
+  <div class="section-kicker">{kicker}</div>
+""",
+        unsafe_allow_html=True,
+    )
+
+
+def end_section():
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
 def add_stress_legend(ax, include_selected=False):
     handles = [
         Line2D(
@@ -737,8 +902,8 @@ The Stress Index summarizes drought response using normalized physiological trai
 It is calculated as:
 Stress Index = 1 - (normalized Chlorophyll Content + normalized Photosystem II Efficiency) / 2
 
-- Values close to 0 ? more tolerant plants
-- Values close to 1 ? more stressed plants
+- Values close to 0 → more tolerant plants
+- Values close to 1 → more stressed plants
 """
     )
 
@@ -999,6 +1164,7 @@ for col in df.columns:
 has_yield = "Yield" in df.columns and df["Yield"].notna().any()
 
 if has_yield:
+    start_section("03 • Yield & Trade-off")
     q33 = df["Yield"].quantile(0.33)
     q66 = df["Yield"].quantile(0.66)
 
@@ -1044,9 +1210,26 @@ ranking_df.columns = ["Genotype", "Stress_Index"]
 ranking_df = ranking_df.sort_values("Stress_Index")
 best = ranking.idxmin()
 worst = ranking.idxmax()
+avg_stress = df["Stress_Index"].mean()
+top_yield_text = (
+    df.groupby("Genotype")["Yield"].mean().idxmax() if has_yield else "N/A"
+)
 fig1 = plot_stress(df)
 fig2 = plot_yield(df) if has_yield else None
 fig_tradeoff = plot_stress_vs_yield(df) if has_yield else None
+
+st.markdown('<div class="metrics-card">', unsafe_allow_html=True)
+st.subheader("📈 Dashboard Summary")
+st.markdown(
+    '<div class="metrics-note">Key result snapshot for fast screening before exploring the detailed tables and plots.</div>',
+    unsafe_allow_html=True,
+)
+metric_cols = st.columns(4)
+metric_cols[0].metric("🌱 Best Genotype", best)
+metric_cols[1].metric("🔥 Worst Genotype", worst)
+metric_cols[2].metric("🧪 Avg Stress", f"{avg_stress:.3f}")
+metric_cols[3].metric("🌾 Top Yield", top_yield_text)
+st.markdown("</div>", unsafe_allow_html=True)
 
 st.subheader("🔎 Search Genotype")
 
@@ -1059,6 +1242,8 @@ selected = st.selectbox(
 
 highlight = df[df["Genotype"] == selected]
 
+
+start_section("01 • Ranking & Selection")
 
 def medal(i):
     if i == 0:
@@ -1118,7 +1303,10 @@ Genotype {best} shows superior drought tolerance and is the strongest candidate 
 """
 )
 
+end_section()
+
 if "Breeding_Score" in df.columns:
+    start_section("02 • Breeding Score")
     st.subheader("🏆 Final Breeding Score Ranking")
     final_rank = df.groupby("Genotype")["Breeding_Score"].mean().sort_values(ascending=False)
     render_styled_table(
@@ -1223,11 +1411,13 @@ It is recommended as the primary candidate for breeding programs.
         loc="best",
     )
     st.pyplot(fig_breed)
+    end_section()
 
 if has_yield:
     st.subheader("🌾 Yield Analysis")
     run_yield_analysis(df)
     run_tradeoff(df)
+    end_section()
 else:
     st.warning("Yield data not available. Yield analysis is disabled.")
 
@@ -1271,6 +1461,7 @@ These results support the use of integrated physiological and agronomic indicato
 # =========================
 # CLASSIFICATION
 # =========================
+start_section("04 • Stress Classification")
 df["Class"] = df["Stress_Index"].apply(classify)
 low = df[df["Stress_Index"] < 0.4]
 mid = df[(df["Stress_Index"] >= 0.4) & (df["Stress_Index"] < 0.7)]
@@ -1352,6 +1543,10 @@ add_stress_legend(ax)
 style_matplotlib(ax)
 st.pyplot(fig)
 
+end_section()
+
+start_section("05 • Integrated Heatmap")
+
 st.subheader("🌡️ Integrated Stress Heatmap")
 st.markdown(
     """
@@ -1377,14 +1572,16 @@ if heatmap.collections:
     style_colorbar(heatmap.collections[0].colorbar)
 fig.savefig("heatmap.png", dpi=300, bbox_inches="tight")
 st.pyplot(fig)
+end_section()
 
 # =========================
 # RECOMMENDATION
 # =========================
 st.subheader("💡 Recommendation")
+start_section("06 • Scientific Summary")
 st.write(generate_recommendation(df["Stress_Index"].mean()))
 
-st.subheader("?? Scientific Summary")
+st.subheader("🧠 Scientific Summary")
 st.markdown(
     """
 ### What this means biologically
@@ -1414,9 +1611,9 @@ st.markdown(
     border-radius: 10px;
     border-left: 5px solid #22c55e;
 ">
-<b>?? Best genotype:</b> {best}<br>
-<b>?? Worst genotype:</b> {worst}<br>
-<b>?? Dataset stress level:</b> {stress_level}
+<b>🌱 Best genotype:</b> {best}<br>
+<b>🔥 Worst genotype:</b> {worst}<br>
+<b>📊 Dataset stress level:</b> {stress_level}
 </div>
 """,
     unsafe_allow_html=True,
@@ -1432,6 +1629,8 @@ The analysis indicates **{stress_level}** based on the combined physiological re
 Lower Stress Index values indicate genotypes that maintained stronger physiological performance. These results support the use of integrated physiological indicators for selecting drought-tolerant breeding material.
 """
 )
+
+end_section()
 
 # =========================
 # BAR PLOT (GREEN - como ayer)
@@ -1452,6 +1651,7 @@ This plot ranks each genotype based on its Stress Index.
 """
 )
 
+start_section("07 • Visualization")
 st.pyplot(fig1)
 
 # =========================
@@ -1464,8 +1664,8 @@ st.markdown(
 
 This graph shows plant physiological health.
 
-- Chlorophyll Content ? leaf greenness and chlorophyll concentration  
-- Photosystem II Efficiency ? photosynthetic efficiency  
+- Chlorophyll Content → leaf greenness and chlorophyll concentration  
+- Photosystem II Efficiency → photosynthetic efficiency  
 
 👉 Genotypes in the upper range indicate **healthier plants under stress**.
 
@@ -1516,6 +1716,7 @@ add_stress_legend(ax2, include_selected=True)
 style_matplotlib(ax2)
 
 st.pyplot(fig2)
+end_section()
 
 # =========================
 # WORD REPORT BUTTON
