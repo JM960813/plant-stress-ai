@@ -307,12 +307,12 @@ if run_demo:
     df = pd.DataFrame(
         {
             "Genotype": ["H1", "H2", "H3", "H4"],
-            "FvFm": [0.78, 0.70, 0.55, 0.60],
-            "SPAD": [42, 39, 28, 31],
-            "Yield": [5.2, 4.8, 3.9, 4.1],
+            "FvFm": [0.80, 0.72, 0.58, 0.61],
+            "SPAD": [45, 40, 30, 33],
+            "Yield": [6.1, 5.4, 4.0, 4.2],
         }
     )
-    st.success("Demo loaded")
+    st.success("Demo loaded successfully")
 
 elif uploaded_file is not None:
     df = pd.read_excel(uploaded_file)
@@ -333,8 +333,8 @@ df["Genotype"] = df["Genotype"].astype(str)
 df = compute_stress(df)
 
 if uploaded_file or run_demo:
-    st.subheader("📊 Results")
-    st.write(df.head())
+    st.subheader("📂 Simulated Dataset" if run_demo else "📋 Data Preview")
+    st.dataframe(df)
 
 if "Yield" not in df.columns:
     st.warning("Yield not found. Using estimated yield model.")
@@ -376,6 +376,8 @@ ranking = df.groupby("Genotype")["Stress_Index"].mean().sort_values()
 ranking_df = ranking.reset_index()
 ranking_df.columns = ["Genotype", "Stress_Index"]
 ranking_df = ranking_df.sort_values("Stress_Index")
+best = ranking.idxmin()
+worst = ranking.idxmax()
 
 
 def medal(i):
@@ -400,12 +402,6 @@ for i, row in enumerate(ranking_df.itertuples()):
 st.subheader("🥇 Breeding Recommendation")
 
 top3 = ranking.nsmallest(3)
-
-st.markdown(
-    """
-The following genotypes are recommended for drought tolerance breeding programs based on lowest Stress Index values:
-"""
-)
 
 for i, (g, v) in enumerate(top3.items(), 1):
     st.markdown(f"**{i}. {g} → Stress Index: {v:.3f}**")
@@ -487,19 +483,15 @@ Yield classification is based on within-experiment distribution (percentiles), n
     )
     st.dataframe(yield_rank)
 
-    fig_yield, ax_yield = plt.subplots()
-    ax_yield.bar(
-        yield_rank.index,
-        yield_rank.values,
-        color=[yield_color(v) for v in yield_rank.values],
-    )
-    ax_yield.set_title("Yield Performance by Genotype")
-    ax_yield.set_ylabel("Yield")
+    st.subheader("🌾 Yield Performance")
 
-    for i, v in enumerate(yield_rank.values):
-        ax_yield.text(i, v, f"{v:.2f}", ha="center", va="bottom")
+    fig, ax = plt.subplots()
 
-    st.pyplot(fig_yield)
+    yield_vals = df.groupby("Genotype")["Yield"].mean()
+
+    ax.bar(yield_vals.index, yield_vals.values, color="skyblue")
+
+    st.pyplot(fig)
 
     best_yield = yield_rank.idxmax()
     worst_yield = yield_rank.idxmin()
@@ -510,48 +502,18 @@ Yield classification is based on within-experiment distribution (percentiles), n
 
     st.subheader("🌾 Stress vs Yield Trade-off (Breeding Decision Map)")
 
-    fig_tradeoff, ax_tradeoff = plt.subplots()
-    scatter = ax_tradeoff.scatter(
-        df["Stress_Index"],
-        df["Yield"],
-        c=df["Stress_Index"],
-        cmap="RdYlGn_r",
-        s=100,
-        alpha=0.8,
-    )
+    fig, ax = plt.subplots()
 
-    stress_cut = df["Stress_Index"].quantile(0.33)
-    yield_cut = df["Yield"].quantile(0.66)
-
-    ax_tradeoff.axvspan(
-        0,
-        stress_cut,
-        ymin=0.5,
-        ymax=1,
-        color="green",
-        alpha=0.08,
-        label="Elite Zone (Low Stress)",
-    )
-
-    ax_tradeoff.axhline(
-        yield_cut,
-        color="green",
-        linestyle="--",
-        linewidth=1,
-        label="High Yield Threshold",
-    )
-
-    ax_tradeoff.set_xlabel("Stress Index (Lower = Better)")
-    ax_tradeoff.set_ylabel("Yield (Higher = Better)")
-    ax_tradeoff.set_title("Genotype Performance Landscape")
+    ax.scatter(df["Stress_Index"], df["Yield"])
 
     for _, row in df.iterrows():
-        ax_tradeoff.text(row["Stress_Index"], row["Yield"], row["Genotype"], fontsize=8)
+        ax.text(row["Stress_Index"], row["Yield"], row["Genotype"])
 
-    plt.colorbar(scatter, label="Stress Level")
-    ax_tradeoff.legend()
-    fig_tradeoff.savefig("tradeoff.png", dpi=300, bbox_inches="tight")
-    st.pyplot(fig_tradeoff)
+    ax.set_xlabel("Stress Index")
+    ax.set_ylabel("Yield")
+
+    fig.savefig("tradeoff.png", dpi=300, bbox_inches="tight")
+    st.pyplot(fig)
 
     st.subheader("🧠 Breeding Interpretation")
 
@@ -638,30 +600,18 @@ Darker red = higher stress, green = healthier genotypes.
 )
 
 st.subheader("🌡️ Stress Heatmap (Genotype × Traits)")
-heat_df = df.copy()
-heat_df = heat_df.groupby("Genotype")[["FvFm", "SPAD", "Stress_Index"]].mean()
+heat = df.groupby("Genotype")[["FvFm", "SPAD", "Stress_Index"]].mean()
 
-fig_heat, ax_heat = plt.subplots()
-sns.heatmap(
-    heat_df,
-    annot=True,
-    cmap="RdYlGn_r",
-    linewidths=0.5,
-    cbar_kws={"label": "Stress Level"},
-    ax=ax_heat,
-)
-ax_heat.set_title("Physiological and Stress Response Heatmap")
-fig_heat.savefig("heatmap.png", dpi=300, bbox_inches="tight")
-st.pyplot(fig_heat)
+fig, ax = plt.subplots()
+sns.heatmap(heat, annot=True, cmap="RdYlGn_r", ax=ax)
+fig.savefig("heatmap.png", dpi=300, bbox_inches="tight")
+st.pyplot(fig)
 
 # =========================
 # RECOMMENDATION
 # =========================
 st.subheader("💡 Recommendation")
 st.write(generate_recommendation(df["Stress_Index"].mean()))
-
-best = ranking.idxmin()
-worst = ranking.idxmax()
 
 st.subheader("🧠 Biological Interpretation")
 st.markdown(
@@ -684,6 +634,13 @@ st.markdown(
 </div>
 """,
     unsafe_allow_html=True,
+)
+
+st.success(
+    f"""
+Best genotype: {best}
+Worst genotype: {worst}
+"""
 )
 
 st.subheader("🔬 Scientific Examiner Insight")
@@ -724,39 +681,52 @@ These findings suggest that integrated physiological indicators are effective fo
 )
 
 # =========================
-# BAR PLOT (GREEN - como ayer)
+# INTERPRETATION
 # =========================
-st.subheader("📊 Stress Index Distribution")
+st.subheader("🧠 Automated Interpretation")
+
 st.markdown(
-    """
-Each bar represents the average stress level per genotype.
-Green indicates tolerance, red indicates sensitivity.
+    f"""
+- **Best genotype:** {best} (lowest stress, highest tolerance)
+- **Worst genotype:** {worst} (highest stress sensitivity)
+
+The results show clear separation among genotypes under drought stress.
+Physiological traits strongly correlate with stress response.
 """
 )
 
+# =========================
+# BAR PLOT (GREEN - como ayer)
+# =========================
 st.subheader("📉 Stress Index by Genotype")
 
-fig1, ax1 = plt.subplots()
-bars = ax1.bar(
-    ranking.index,
-    ranking.values,
-    color=[color_scale(v) for v in ranking.values],
-)
-ax1.set_title("Stress Index by Genotype")
-ax1.set_ylabel("Stress Index")
+fig, ax = plt.subplots()
+
+colors = []
+
+for v in ranking.values:
+    if v < 0.4:
+        colors.append("green")
+    elif v < 0.7:
+        colors.append("orange")
+    else:
+        colors.append("red")
+
+bars = ax.bar(ranking.index, ranking.values, color=colors)
 
 for bar in bars:
-    h = bar.get_height()
-    ax1.text(
-        bar.get_x() + bar.get_width() / 2,
-        h,
-        f"{h:.2f}",
+    height = bar.get_height()
+    ax.text(
+        bar.get_x() + bar.get_width() / 2.0,
+        height,
+        f"{height:.2f}",
         ha="center",
         va="bottom",
-        fontsize=9,
     )
 
-st.pyplot(fig1)
+ax.set_title("Stress Index by Genotype")
+
+st.pyplot(fig)
 
 # =========================
 # SCATTER (AZUL - como ayer)
