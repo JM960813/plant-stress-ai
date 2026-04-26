@@ -241,6 +241,131 @@ def color_class(val):
     return f"background-color: {color_scale(val)}"
 
 
+def explain_stress_vs_yield():
+    st.markdown(
+        """
+    ### ⚖️ Stress vs Yield Trade-off
+
+    This plot shows the relationship between drought stress and productivity.
+
+    - Low stress = tolerant genotypes  
+    - High yield = productive genotypes  
+    """
+    )
+
+
+def plot_stress(df):
+    ranking = df.groupby("Genotype")["Stress_Index"].mean().sort_values()
+    fig, ax = plt.subplots()
+
+    colors = []
+    for value in ranking.values:
+        if value < 0.4:
+            colors.append("green")
+        elif value < 0.7:
+            colors.append("orange")
+        else:
+            colors.append("red")
+
+    bars = ax.bar(ranking.index, ranking.values, color=colors)
+    for bar in bars:
+        height = bar.get_height()
+        ax.text(
+            bar.get_x() + bar.get_width() / 2.0,
+            height,
+            f"{height:.2f}",
+            ha="center",
+            va="bottom",
+        )
+
+    ax.set_title("Stress Index by Genotype")
+    return fig
+
+
+def plot_yield(df):
+    yield_vals = df.groupby("Genotype")["Yield"].mean()
+    fig, ax = plt.subplots()
+    ax.bar(yield_vals.index, yield_vals.values, color="skyblue")
+    ax.set_title("Yield by Genotype")
+    return fig
+
+
+def plot_stress_vs_yield(df):
+    fig, ax = plt.subplots()
+    ax.scatter(df["Stress_Index"], df["Yield"])
+
+    for _, row in df.iterrows():
+        ax.text(row["Stress_Index"], row["Yield"], row["Genotype"])
+
+    ax.set_xlabel("Stress Index")
+    ax.set_ylabel("Yield")
+    fig.savefig("tradeoff.png", dpi=300, bbox_inches="tight")
+    return fig
+
+
+def generate_word_report(df, ranking, fig1, fig2):
+    doc = Document()
+
+    best = ranking.idxmin()
+    worst = ranking.idxmax()
+
+    title = doc.add_heading("PhytoStress AI Report", 0)
+    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    doc.add_paragraph("Drought Stress Phenotyping Report")
+
+    doc.add_heading("1. Genotype Ranking", level=1)
+    table = doc.add_table(rows=1, cols=3)
+    hdr = table.rows[0].cells
+    hdr[0].text = "Rank"
+    hdr[1].text = "Genotype"
+    hdr[2].text = "Stress Index"
+
+    for i, (geno, val) in enumerate(ranking.items(), 1):
+        row = table.add_row().cells
+        row[0].text = str(i)
+        row[1].text = str(geno)
+        row[2].text = f"{val:.3f}"
+
+    fig1_path = "fig1.png"
+    fig1.savefig(fig1_path, dpi=300, bbox_inches="tight")
+
+    doc.add_heading("2. Figures", level=1)
+    doc.add_paragraph("Figure 1: Stress Index by Genotype")
+    doc.add_picture(fig1_path, width=Inches(5.5))
+
+    if fig2 is not None:
+        fig2_path = "fig2.png"
+        fig2.savefig(fig2_path, dpi=300, bbox_inches="tight")
+        doc.add_paragraph("Figure 2: Yield by Genotype")
+        doc.add_picture(fig2_path, width=Inches(5.5))
+
+    low = df[df["Stress_Index"] < 0.4]["Genotype"].unique()
+    mid = df[
+        (df["Stress_Index"] >= 0.4) & (df["Stress_Index"] < 0.7)
+    ]["Genotype"].unique()
+    high = df[df["Stress_Index"] >= 0.7]["Genotype"].unique()
+
+    doc.add_heading("3. Stress Classification", level=1)
+    doc.add_paragraph("Low stress: " + ", ".join(low))
+    doc.add_paragraph("Moderate stress: " + ", ".join(mid))
+    doc.add_paragraph("High stress: " + ", ".join(high))
+
+    doc.add_heading("4. Final Recommendation", level=1)
+    doc.add_paragraph(
+        f"""
+Best genotype: {best}
+Worst genotype: {worst}
+
+The best genotype is recommended because it shows the lowest stress response and the strongest drought tolerance.
+"""
+    )
+
+    buffer = io.BytesIO()
+    doc.save(buffer)
+    buffer.seek(0)
+    return buffer
+
+
 def generate_full_report(df, ranking):
     doc = Document()
 
@@ -378,6 +503,9 @@ ranking_df.columns = ["Genotype", "Stress_Index"]
 ranking_df = ranking_df.sort_values("Stress_Index")
 best = ranking.idxmin()
 worst = ranking.idxmax()
+fig1 = plot_stress(df)
+fig2 = plot_yield(df) if "Yield" in df.columns else None
+fig_tradeoff = plot_stress_vs_yield(df) if "Yield" in df.columns else None
 
 
 def medal(i):
@@ -400,6 +528,19 @@ for i, row in enumerate(ranking_df.itertuples()):
     )
 
 st.subheader("🥇 Breeding Recommendation")
+
+st.markdown(
+    """
+### 🧠 How to read this section
+
+This section identifies the best genotypes for breeding based on the lowest Stress Index.
+
+- Top ranked genotypes → most stable under drought stress  
+- Bottom ranked genotypes → poor performance under stress  
+
+👉 These are the **final candidates for selection in breeding programs**.
+"""
+)
 
 top3 = ranking.nsmallest(3)
 
@@ -474,6 +615,7 @@ It is recommended as the primary candidate for breeding programs.
     st.pyplot(fig_breed)
 
 if "Yield" in df.columns:
+    st.subheader("🌾 Yield Analysis")
     yield_rank = df.groupby("Genotype")["Yield"].mean().sort_values(ascending=False)
     st.subheader("🌾 Yield Ranking (Relative Performance)")
     st.markdown(
@@ -484,14 +626,20 @@ Yield classification is based on within-experiment distribution (percentiles), n
     st.dataframe(yield_rank)
 
     st.subheader("🌾 Yield Performance")
+    st.markdown(
+        """
+### 🌾 What this means
 
-    fig, ax = plt.subplots()
+This plot shows productivity differences among genotypes.
 
-    yield_vals = df.groupby("Genotype")["Yield"].mean()
+- Higher bars = higher productivity  
+- Lower bars = reduced performance  
 
-    ax.bar(yield_vals.index, yield_vals.values, color="skyblue")
+👉 Yield helps balance **stress tolerance vs productivity trade-offs**.
+"""
+    )
 
-    st.pyplot(fig)
+    st.pyplot(fig2)
 
     best_yield = yield_rank.idxmax()
     worst_yield = yield_rank.idxmin()
@@ -500,20 +648,8 @@ Yield classification is based on within-experiment distribution (percentiles), n
     st.success(f"Best yield genotype: {best_yield}")
     st.error(f"Lowest yield genotype: {worst_yield}")
 
-    st.subheader("🌾 Stress vs Yield Trade-off (Breeding Decision Map)")
-
-    fig, ax = plt.subplots()
-
-    ax.scatter(df["Stress_Index"], df["Yield"])
-
-    for _, row in df.iterrows():
-        ax.text(row["Stress_Index"], row["Yield"], row["Genotype"])
-
-    ax.set_xlabel("Stress Index")
-    ax.set_ylabel("Yield")
-
-    fig.savefig("tradeoff.png", dpi=300, bbox_inches="tight")
-    st.pyplot(fig)
+    explain_stress_vs_yield()
+    st.pyplot(fig_tradeoff)
 
     st.subheader("🧠 Breeding Interpretation")
 
@@ -528,6 +664,8 @@ Yield classification is based on within-experiment distribution (percentiles), n
 
     st.success(f"🌱 Elite genotypes (recommended): {', '.join(elite['Genotype'].unique())}")
     st.error(f"🔥 Sensitive genotypes (avoid): {', '.join(sensitive['Genotype'].unique())}")
+else:
+    st.info("Yield not provided. Yield analysis disabled.")
 
 if "Breeding_Score" in df.columns and "Yield" in df.columns:
     st.subheader("📄 Automated Discussion (Scientific Interpretation)")
@@ -575,6 +713,19 @@ mid = df[(df["Stress_Index"] >= 0.4) & (df["Stress_Index"] < 0.7)]
 high = df[df["Stress_Index"] >= 0.7]
 
 st.subheader("📊 Stress Classification")
+st.markdown(
+    """
+### 📊 Stress Classification Overview
+
+Genotypes are grouped based on Stress Index distribution:
+
+- 🟢 Low stress → tolerant genotypes (preferred for breeding)
+- 🟡 Moderate stress → intermediate performance
+- 🔴 High stress → sensitive genotypes (not recommended)
+
+👉 This classification supports selection decisions in breeding programs.
+"""
+)
 st.dataframe(df.style.map(color_class, subset=["Stress_Index"]))
 
 tab1, tab2, tab3 = st.tabs(["🟢 Low", "🟡 Moderate", "🔴 High"])
@@ -591,11 +742,18 @@ with tab3:
 st.subheader("📊 Stress Classes Overview")
 st.bar_chart(df["Class"].value_counts())
 
-st.subheader("🌡️ Integrated Stress Profile")
+st.subheader("🌡️ Integrated Stress Heatmap")
 st.markdown(
     """
-Heatmap combining physiological traits and Stress Index.
-Darker red = higher stress, green = healthier genotypes.
+### 🔬 What this heatmap shows
+
+This heatmap combines all physiological traits and stress response.
+
+- 🟢 Green → optimal performance  
+- 🟡 Yellow → intermediate response  
+- 🔴 Red → high stress sensitivity  
+
+👉 It provides a **quick visual summary of genotype performance**.
 """
 )
 
@@ -617,6 +775,22 @@ st.subheader("🧠 Biological Interpretation")
 st.markdown(
     """
 This section summarizes biological meaning of the results and identifies best and worst performing genotypes.
+"""
+)
+
+st.subheader("🧠 Scientific Interpretation")
+
+st.markdown(
+    """
+### 📄 What this means biologically
+
+This section summarizes all results into a biological conclusion.
+
+- Identifies most tolerant genotype  
+- Identifies most sensitive genotype  
+- Confirms physiological consistency across traits  
+
+👉 This is the **decision-making output for breeding selection**.
 """
 )
 
@@ -700,33 +874,21 @@ Physiological traits strongly correlate with stress response.
 # =========================
 st.subheader("📉 Stress Index by Genotype")
 
-fig, ax = plt.subplots()
+st.markdown(
+    """
+### 📊 What this graph shows
 
-colors = []
+This plot ranks each genotype based on its Stress Index.
 
-for v in ranking.values:
-    if v < 0.4:
-        colors.append("green")
-    elif v < 0.7:
-        colors.append("orange")
-    else:
-        colors.append("red")
+- 🟢 Low values = drought tolerant genotypes  
+- 🟡 Medium values = intermediate response  
+- 🔴 High values = drought sensitive genotypes  
 
-bars = ax.bar(ranking.index, ranking.values, color=colors)
+👉 This is the **main selection criterion** for breeding decisions.
+"""
+)
 
-for bar in bars:
-    height = bar.get_height()
-    ax.text(
-        bar.get_x() + bar.get_width() / 2.0,
-        height,
-        f"{height:.2f}",
-        ha="center",
-        va="bottom",
-    )
-
-ax.set_title("Stress Index by Genotype")
-
-st.pyplot(fig)
+st.pyplot(fig1)
 
 # =========================
 # SCATTER (AZUL - como ayer)
@@ -734,8 +896,14 @@ st.pyplot(fig)
 st.subheader("🌿 Physiological Trait Relationship")
 st.markdown(
     """
-This plot shows the relationship between chlorophyll content (SPAD) and photosynthetic efficiency (Fv/Fm).
-Genotypes cluster based on physiological performance.
+### 🌱 Biological meaning
+
+This graph shows plant physiological health.
+
+- SPAD → chlorophyll content (leaf greenness)  
+- Fv/Fm → photosynthetic efficiency  
+
+👉 Genotypes in the upper range indicate **healthier plants under stress**.
 """
 )
 
