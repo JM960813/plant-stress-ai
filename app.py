@@ -62,6 +62,19 @@ div[data-testid="stMarkdownContainer"] table {
     border-spacing: 0;
 }
 
+div[data-testid="stDataFrame"] thead th,
+div[data-testid="stDataFrame"] [role="columnheader"] {
+    background-color: #2E7D32 !important;
+    color: white !important;
+    font-weight: 700 !important;
+    border-color: #2E7D32 !important;
+}
+
+div[data-testid="stDataFrame"] [role="gridcell"],
+div[data-testid="stDataFrame"] tbody td {
+    color: #1b1b1b !important;
+}
+
 /* Texto general */
 html, body, [class*="css"] {
     color: #1b1b1b;
