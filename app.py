@@ -8,7 +8,9 @@ import streamlit as st
 from matplotlib.lines import Line2D
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.shared import Inches
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+from docx.shared import Inches, Pt, RGBColor
 from openpyxl import Workbook
 
 plt.rcParams.update(
@@ -384,10 +386,71 @@ h1, h2, h3 {
     font-size: 0.9rem;
 }
 
+.leader-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.85rem;
+    margin: 0.35rem 0 1rem 0;
+}
+
+.leader-card {
+    background: linear-gradient(180deg, #ffffff 0%, #f9fcf8 100%);
+    border: 1px solid #dce8dc;
+    border-radius: 18px;
+    padding: 0.95rem 1rem;
+    box-shadow: 0 10px 20px rgba(46, 125, 50, 0.05);
+}
+
+.leader-rank {
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #56715b;
+    margin-bottom: 0.3rem;
+}
+
+.leader-genotype {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #17351d;
+}
+
+.leader-score {
+    margin-top: 0.35rem;
+    color: #49644e;
+    font-size: 0.92rem;
+}
+
+.executive-card {
+    background: linear-gradient(180deg, #ffffff 0%, #f8fcf7 100%);
+    border: 1px solid #d8e6d8;
+    border-radius: 20px;
+    padding: 1rem 1.05rem;
+    box-shadow: 0 12px 24px rgba(46, 125, 50, 0.06);
+    margin: 0.7rem 0 0.85rem 0;
+}
+
+.executive-title {
+    font-size: 0.84rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #2a5a33;
+    margin-bottom: 0.4rem;
+}
+
+.executive-text {
+    color: #345039;
+    line-height: 1.55;
+    font-size: 0.95rem;
+}
+
 @media (max-width: 900px) {
     .hero-layout,
     .summary-grid,
-    .feature-strip {
+    .feature-strip,
+    .leader-grid {
         grid-template-columns: 1fr;
     }
     .hero-findings-grid {
@@ -748,7 +811,7 @@ def style_dataframe(styler):
     return styler.set_table_styles(
         [
             {
-                "selector": "th",
+                "selector": "thead th",
                 "props": [
                     ("background-color", LOW_STRESS_COLOR),
                     ("color", "white"),
@@ -758,6 +821,24 @@ def style_dataframe(styler):
                     ("text-align", "left"),
                     ("font-size", "0.9rem"),
                     ("letter-spacing", "0.01em"),
+                ],
+            },
+            {
+                "selector": "th.blank",
+                "props": [
+                    ("background-color", LOW_STRESS_COLOR),
+                    ("color", "white"),
+                    ("border", f"1px solid {LOW_STRESS_COLOR}"),
+                ],
+            },
+            {
+                "selector": "tbody th",
+                "props": [
+                    ("background-color", "#f7fbf7"),
+                    ("color", "#6c7f70"),
+                    ("border", f"1px solid {BORDER_COLOR}"),
+                    ("padding", "10px 10px"),
+                    ("font-weight", "600"),
                 ],
             },
             {
@@ -880,7 +961,7 @@ def render_styled_table(
         styler = styler.map(style_class_cell, subset=["Yield_Class"])
     if caption_text:
         st.caption(caption_text)
-    st.dataframe(styler, use_container_width=True)
+    st.dataframe(styler, use_container_width=True, hide_index=True)
 
 
 def start_section(kicker):
@@ -936,6 +1017,85 @@ def render_spotlight_card(selected, highlight, has_yield):
 """,
         unsafe_allow_html=True,
     )
+
+
+def get_priority_columns(df_table):
+    columns = ["Genotype", FVFM_COL, SPAD_COL]
+    optional = [
+        "Yield",
+        "Stress_Index",
+        "Breeding_Score",
+        "Yield_Class",
+        "Class",
+    ]
+    for col in optional:
+        if col in df_table.columns:
+            columns.append(col)
+    return [col for col in columns if col in df_table.columns]
+
+
+def get_stress_overview_columns(df_table):
+    columns = ["Genotype", SPAD_COL, FVFM_COL, "Stress_Index", "Class"]
+    if "Yield" in df_table.columns:
+        columns.insert(3, "Yield")
+    if "Breeding_Score" in df_table.columns:
+        columns.append("Breeding_Score")
+    return [col for col in columns if col in df_table.columns]
+
+
+def render_leaderboard_cards(ranking_table):
+    leaders = ranking_table.head(3)
+    st.markdown('<div class="leader-grid">', unsafe_allow_html=True)
+    cols = st.columns(max(len(leaders), 1))
+    badges = ["🥇 Rank 1", "🥈 Rank 2", "🥉 Rank 3"]
+    for idx, row in enumerate(leaders.itertuples(index=False)):
+        with cols[idx]:
+            st.markdown(
+                f"""
+<div class="leader-card">
+  <div class="leader-rank">{badges[idx]}</div>
+  <div class="leader-genotype">{row.Genotype}</div>
+  <div class="leader-score">Stress Index: <b>{row.Stress_Index:.3f}</b></div>
+</div>
+""",
+                unsafe_allow_html=True,
+            )
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+def render_executive_card(title, body):
+    st.markdown(
+        f"""
+<div class="executive-card">
+  <div class="executive-title">{title}</div>
+  <div class="executive-text">{body}</div>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
+
+def set_cell_shading(cell, fill):
+    tc_pr = cell._tc.get_or_add_tcPr()
+    shd = OxmlElement("w:shd")
+    shd.set(qn("w:fill"), fill)
+    tc_pr.append(shd)
+
+
+def format_report_heading(paragraph):
+    if paragraph.runs:
+        for run in paragraph.runs:
+            run.font.color.rgb = RGBColor(31, 92, 43)
+            run.font.bold = True
+
+
+def format_report_caption(paragraph):
+    paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    if paragraph.runs:
+        for run in paragraph.runs:
+            run.italic = True
+            run.font.size = Pt(9.5)
+            run.font.color.rgb = RGBColor(72, 98, 77)
 
 
 def add_stress_legend(ax, include_selected=False):
@@ -1142,25 +1302,35 @@ def run_tradeoff(df):
 def generate_word_report(df):
     has_yield = safe_yield_available(df)
     doc = Document()
+    normal_style = doc.styles["Normal"]
+    normal_style.font.name = "Calibri"
+    normal_style.font.size = Pt(10.5)
 
     ranking = df.groupby("Genotype")["Stress_Index"].mean().sort_values()
     best = ranking.idxmin()
     worst = ranking.idxmax()
 
-    title = doc.add_heading("PhytoStress AI Report", 0)
-    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    title = doc.add_paragraph()
+    title_run = title.add_run("PhytoStress AI Scientific Report")
+    title_run.bold = True
+    title_run.font.size = Pt(18)
+    title_run.font.color.rgb = RGBColor(31, 92, 43)
 
-    doc.add_paragraph("Drought Stress Phenotyping Report")
+    intro = doc.add_paragraph()
+    intro.add_run(
+        "Technical summary of genotype performance under drought stress using "
+    )
+    intro.add_run("Chlorophyll Content, Photosystem II Efficiency, Stress Index").bold = True
+    intro.add_run(" and ")
+    intro.add_run("Yield").bold = True
+    intro.add_run(" when available.")
 
-    doc.add_heading("PhytoStress AI Report Explanation", level=1)
     doc.add_paragraph(
-        """
-This report explains the results of the PhytoStress AI analysis in a simple and structured way.
-Each section describes what the graphs and tables mean and how to interpret genotype performance under drought stress conditions.
-"""
+        "This document preserves the analytical outputs of the dashboard and organizes them as a concise scientific report for interpretation and decision support."
     )
 
-    doc.add_heading("1. Genotype Ranking", level=1)
+    heading = doc.add_heading("1. Genotype Ranking", level=1)
+    format_report_heading(heading)
     doc.add_paragraph(
         """
 This table shows the genotypes ranked by Stress Index.
@@ -1171,20 +1341,35 @@ This table shows the genotypes ranked by Stress Index.
 The best performing genotype is the one with the lowest Stress Index.
 """
     )
-    doc.add_heading("Genotype Ranking Table", level=1)
+    subheading = doc.add_heading("Genotype Ranking Table", level=2)
+    format_report_heading(subheading)
     table = doc.add_table(rows=1, cols=3)
+    table.style = "Table Grid"
     hdr = table.rows[0].cells
     hdr[0].text = "Rank"
     hdr[1].text = "Genotype"
     hdr[2].text = "Stress Index"
+    for cell in hdr:
+        set_cell_shading(cell, "2E7D32")
+        for paragraph in cell.paragraphs:
+            for run in paragraph.runs:
+                run.font.bold = True
+                run.font.color.rgb = RGBColor(255, 255, 255)
 
     for i, (geno, val) in enumerate(ranking.items(), 1):
         row = table.add_row().cells
         row[0].text = str(i)
         row[1].text = str(geno)
         row[2].text = f"{val:.3f}"
+        if geno == best:
+            for cell in row:
+                set_cell_shading(cell, "EDF7ED")
+        elif geno == worst:
+            for cell in row:
+                set_cell_shading(cell, "FDEEEE")
 
-    doc.add_heading("2. Stress Index Explanation", level=1)
+    heading = doc.add_heading("2. Stress Index Explanation", level=1)
+    format_report_heading(heading)
     doc.add_paragraph(
         """
 The Stress Index summarizes drought response using normalized physiological traits.
@@ -1198,7 +1383,8 @@ Stress Index = 1 - (normalized Chlorophyll Content + normalized Photosystem II E
     )
 
     if "Yield" in df.columns:
-        doc.add_heading("3. Yield Performance", level=1)
+        heading = doc.add_heading("3. Yield Performance", level=1)
+        format_report_heading(heading)
         doc.add_paragraph(
             """
 Yield represents the productivity potential of each genotype.
@@ -1209,7 +1395,8 @@ In this analysis, yield is interpreted relatively:
 """
         )
 
-    doc.add_heading("4. Heatmap Interpretation", level=1)
+    heading = doc.add_heading("4. Heatmap Interpretation", level=1)
+    format_report_heading(heading)
     doc.add_paragraph(
         """
 The heatmap shows relationships between Stress Index, Chlorophyll Content, and Photosystem II Efficiency.
@@ -1222,7 +1409,8 @@ This helps visualize overall genotype behavior in a single view.
     )
 
     if "Yield" in df.columns:
-        doc.add_heading("5. Stress vs Yield Relationship", level=1)
+        heading = doc.add_heading("5. Stress vs Yield Relationship", level=1)
+        format_report_heading(heading)
         doc.add_paragraph(
             """
 This graph compares stress tolerance and yield at the same time.
@@ -1240,18 +1428,23 @@ This is the most important figure for selecting elite genotypes.
     fig2_path = "fig2.png"
     fig2.savefig(fig2_path, dpi=300, bbox_inches="tight")
 
-    doc.add_heading("Figures", level=1)
-    doc.add_paragraph("Figure 1: Stress Index by Genotype")
+    heading = doc.add_heading("Figures", level=1)
+    format_report_heading(heading)
+    cap = doc.add_paragraph("Figure 1. Stress Index by Genotype.")
+    format_report_caption(cap)
     doc.add_picture(fig1_path, width=Inches(5.5))
 
-    doc.add_paragraph("Figure 2: Chlorophyll Content vs Photosystem II Efficiency")
+    cap = doc.add_paragraph("Figure 2. Chlorophyll Content versus Photosystem II Efficiency.")
+    format_report_caption(cap)
     doc.add_picture(fig2_path, width=Inches(5.5))
 
-    doc.add_paragraph("Figure 3: Heatmap of physiological traits")
+    cap = doc.add_paragraph("Figure 3. Integrated heatmap of physiological traits and stress response.")
+    format_report_caption(cap)
     doc.add_picture("heatmap.png", width=Inches(5.5))
 
     if has_yield:
-        doc.add_paragraph("Figure 4: Stress vs Yield Trade-off")
+        cap = doc.add_paragraph("Figure 4. Stress versus Yield trade-off for breeding decisions.")
+        format_report_caption(cap)
         doc.add_picture("tradeoff.png", width=Inches(5.5))
 
     low = df[df["Stress_Index"] < 0.4]["Genotype"].unique()
@@ -1260,12 +1453,14 @@ This is the most important figure for selecting elite genotypes.
     ]["Genotype"].unique()
     high = df[df["Stress_Index"] >= 0.7]["Genotype"].unique()
 
-    doc.add_heading("Stress Classification", level=1)
+    heading = doc.add_heading("Stress Classification", level=1)
+    format_report_heading(heading)
     doc.add_paragraph("Low stress (tolerant): " + ", ".join(low))
     doc.add_paragraph("Moderate stress: " + ", ".join(mid))
     doc.add_paragraph("High stress (sensitive): " + ", ".join(high))
 
-    doc.add_heading("Discussion", level=1)
+    heading = doc.add_heading("Discussion", level=1)
+    format_report_heading(heading)
     if "Breeding_Score" in df.columns and has_yield:
         final_rank = df.groupby("Genotype")["Breeding_Score"].mean().sort_values(
             ascending=False
@@ -1301,39 +1496,34 @@ These results confirm that physiological indicators such as Chlorophyll Content,
 """
         )
 
-    doc.add_heading("Final Recommendation", level=1)
+    heading = doc.add_heading("Final Recommendation", level=1)
+    format_report_heading(heading)
     if "Breeding_Score" in df.columns and has_yield:
         final_rank = df.groupby("Genotype")["Breeding_Score"].mean().sort_values(
             ascending=False
         )
         report_best = final_rank.idxmax()
         report_worst = final_rank.idxmin()
-        doc.add_paragraph(
-            f"""
-Best genotype: {report_best}
-Worst genotype: {report_worst}
-
-Best genotype is recommended because it combines:
-- Low Stress Index
-- High Yield
-- Strong overall Breeding Score
-
-This genotype represents the ideal candidate for drought tolerance selection.
-"""
+        paragraph = doc.add_paragraph()
+        paragraph.add_run("Best genotype: ").bold = True
+        paragraph.add_run(f"{report_best}\n")
+        paragraph.add_run("Worst genotype: ").bold = True
+        paragraph.add_run(f"{report_worst}\n\n")
+        paragraph.add_run("Best genotype is recommended because it combines:\n")
+        paragraph.add_run("• Low Stress Index\n• High Yield\n• Strong overall Breeding Score\n\n")
+        paragraph.add_run(
+            "This genotype represents the ideal candidate for drought tolerance selection."
         )
     else:
-        doc.add_paragraph(
-            f"""
-Best genotype: {best}
-Worst genotype: {worst}
-
-Best genotype is recommended because it combines:
-- Low stress response
-- High physiological stability
-- Strong drought tolerance
-
-This genotype represents the ideal candidate for drought tolerance selection.
-"""
+        paragraph = doc.add_paragraph()
+        paragraph.add_run("Best genotype: ").bold = True
+        paragraph.add_run(f"{best}\n")
+        paragraph.add_run("Worst genotype: ").bold = True
+        paragraph.add_run(f"{worst}\n\n")
+        paragraph.add_run("Best genotype is recommended because it combines:\n")
+        paragraph.add_run("• Low stress response\n• High physiological stability\n• Strong drought tolerance\n\n")
+        paragraph.add_run(
+            "This genotype represents the ideal candidate for drought tolerance selection."
         )
 
     buffer = io.BytesIO()
@@ -1418,7 +1608,7 @@ if run_demo:
 elif uploaded_file is not None:
     df = pd.read_excel(uploaded_file)
     st.success("File uploaded successfully")
-    render_styled_table(df)
+    render_styled_table(df[get_priority_columns(df)])
 else:
     st.stop()
 
@@ -1439,7 +1629,10 @@ df = compute_stress(df)
 
 if uploaded_file or run_demo:
     st.subheader("📂 Simulated Dataset" if run_demo else "📋 Data Preview")
-    render_styled_table(df)
+    render_styled_table(
+        df[get_priority_columns(df)],
+        caption_text="Compact data preview with the core variables used in the analysis pipeline.",
+    )
 
 if "Yield" in df.columns:
     df["Yield"] = pd.to_numeric(df["Yield"], errors="coerce")
@@ -1578,12 +1771,13 @@ for i, row in enumerate(ranking_df.itertuples()):
 
 ranking_table = ranking_df.copy()
 ranking_table.insert(0, "Rank", range(1, len(ranking_table) + 1))
+render_leaderboard_cards(ranking_df)
 render_styled_table(
     ranking_table,
     stress_col="Stress_Index",
     best=best,
     worst=worst,
-    caption_text="Lower Stress Index values indicate stronger drought tolerance. Green marks the best genotype and red marks the most sensitive.",
+    caption_text="Lower Stress Index values indicate stronger drought tolerance. The top three cards provide the fastest shortlist for breeding selection.",
 )
 
 st.subheader("🥇 Breeding Recommendation")
@@ -1794,7 +1988,7 @@ Genotypes are grouped based on Stress Index values:
 """
 )
 render_styled_table(
-    df,
+    df[get_stress_overview_columns(df)],
     stress_col="Stress_Index",
     best=best,
     worst=worst,
@@ -1805,7 +1999,7 @@ tab1, tab2, tab3 = st.tabs(["🟢 Low", "🟡 Moderate", "🔴 High"])
 
 with tab1:
     render_styled_table(
-        low,
+        low[get_stress_overview_columns(low)],
         stress_col="Stress_Index",
         best=best,
         worst=worst,
@@ -1814,7 +2008,7 @@ with tab1:
 
 with tab2:
     render_styled_table(
-        mid,
+        mid[get_stress_overview_columns(mid)],
         stress_col="Stress_Index",
         best=best,
         worst=worst,
@@ -1823,7 +2017,7 @@ with tab2:
 
 with tab3:
     render_styled_table(
-        high,
+        high[get_stress_overview_columns(high)],
         stress_col="Stress_Index",
         best=best,
         worst=worst,
@@ -1891,7 +2085,10 @@ end_section()
 # =========================
 st.subheader("💡 Recommendation")
 start_section("06 • Scientific Summary")
-st.write(generate_recommendation(df["Stress_Index"].mean()))
+render_executive_card(
+    "Recommendation",
+    generate_recommendation(df["Stress_Index"].mean()),
+)
 
 st.subheader("🧠 Scientific Summary")
 st.markdown(
@@ -1915,31 +2112,21 @@ elif avg < 0.7:
 else:
     stress_level = "high stress conditions"
 
-st.markdown(
-    f"""
-<div style="
-    background-color: rgba(34,197,94,0.1);
-    padding: 15px;
-    border-radius: 10px;
-    border-left: 5px solid #22c55e;
-">
-<b>🌱 Best genotype:</b> {best}<br>
-<b>🔥 Worst genotype:</b> {worst}<br>
-<b>📊 Dataset stress level:</b> {stress_level}
-</div>
-""",
-    unsafe_allow_html=True,
+render_executive_card(
+    "Key findings",
+    f"<b>🌱 Best genotype:</b> {best}<br>"
+    f"<b>🔥 Worst genotype:</b> {worst}<br>"
+    f"<b>📊 Dataset stress level:</b> {stress_level}",
 )
 
-st.markdown(
-    f"""
-The analysis indicates **{stress_level}** based on the combined physiological response of Chlorophyll Content and Photosystem II Efficiency.
-
-- **Most tolerant genotype:** {best}
-- **Most sensitive genotype:** {worst}
-
-Lower Stress Index values indicate genotypes that maintained stronger physiological performance. These results support the use of integrated physiological indicators for selecting drought-tolerant breeding material.
-"""
+render_executive_card(
+    "Scientific interpretation",
+    f"The analysis indicates <b>{stress_level}</b> based on the combined physiological response of "
+    f"Chlorophyll Content and Photosystem II Efficiency.<br><br>"
+    f"<b>Most tolerant genotype:</b> {best}<br>"
+    f"<b>Most sensitive genotype:</b> {worst}<br><br>"
+    "Lower Stress Index values indicate genotypes that maintained stronger physiological performance. "
+    "These results support the use of integrated physiological indicators for selecting drought-tolerant breeding material.",
 )
 
 end_section()
