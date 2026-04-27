@@ -87,10 +87,10 @@ h1, h2, h3 {
         radial-gradient(circle at top right, rgba(168, 230, 163, 0.55), transparent 28%),
         linear-gradient(135deg, #ffffff 0%, #eef7ee 52%, #e3f2e3 100%);
     border: 1px solid #d8e6d8;
-    border-radius: 22px;
-    padding: 1.6rem 1.8rem;
-    box-shadow: 0 12px 30px rgba(46, 125, 50, 0.08);
-    margin-bottom: 1rem;
+    border-radius: 28px;
+    padding: 1.7rem 1.8rem 1.9rem 1.8rem;
+    box-shadow: 0 22px 48px rgba(46, 125, 50, 0.11);
+    margin-bottom: 1.15rem;
     overflow: hidden;
     position: relative;
 }
@@ -127,6 +127,18 @@ h1, h2, h3 {
     margin-bottom: 0.85rem;
 }
 
+.hero-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(300px, 0.85fr);
+    gap: 1.25rem;
+    align-items: stretch;
+}
+
+.hero-copy {
+    position: relative;
+    z-index: 1;
+}
+
 .hero-title {
     font-size: 2rem;
     font-weight: 800;
@@ -159,48 +171,90 @@ h1, h2, h3 {
     font-weight: 600;
 }
 
-.hero-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1.6fr) minmax(250px, 0.9fr);
-    gap: 1rem;
-    align-items: start;
+.hero-visual {
+    position: relative;
+    min-height: 250px;
+    border-radius: 24px;
+    border: 1px solid rgba(46, 125, 50, 0.14);
+    background:
+        radial-gradient(circle at 70% 20%, rgba(255,255,255,0.85), transparent 26%),
+        radial-gradient(circle at 35% 28%, rgba(196, 224, 163, 0.82), transparent 44%),
+        linear-gradient(180deg, #dceecf 0%, #d7e7bd 34%, #6d5a43 35%, #4d3b2c 100%);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.22);
+    overflow: hidden;
 }
 
-.hero-panel {
-    background: rgba(255, 255, 255, 0.72);
-    border: 1px solid rgba(46, 125, 50, 0.12);
-    border-radius: 18px;
-    padding: 1rem 1rem 1.2rem 1rem;
-    backdrop-filter: blur(2px);
+.hero-visual::before {
+    content: "";
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 42%;
+    background:
+        radial-gradient(circle at 18% 0%, rgba(130, 92, 62, 0.42), transparent 22%),
+        radial-gradient(circle at 52% 10%, rgba(65, 44, 31, 0.34), transparent 20%),
+        radial-gradient(circle at 78% 0%, rgba(126, 88, 58, 0.30), transparent 22%);
 }
 
-.hero-panel-title {
-    font-size: 0.86rem;
+.hero-plant {
+    position: absolute;
+    left: 50%;
+    top: 52%;
+    transform: translate(-50%, -50%);
+    font-size: 6.1rem;
+    filter: drop-shadow(0 8px 12px rgba(31, 61, 31, 0.18));
+}
+
+.hero-findings {
+    position: absolute;
+    right: 1rem;
+    top: 1rem;
+    width: min(86%, 340px);
+    background: rgba(255, 255, 255, 0.93);
+    border: 1px solid rgba(46, 125, 50, 0.16);
+    border-radius: 22px;
+    padding: 1rem 1rem 0.95rem 1rem;
+    box-shadow: 0 16px 32px rgba(46, 125, 50, 0.10);
+    backdrop-filter: blur(3px);
+}
+
+.hero-findings-title {
+    font-size: 0.88rem;
     font-weight: 800;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: #2a5a33;
-    margin-bottom: 0.55rem;
+    color: #1f5c2b;
+    margin-bottom: 0.8rem;
 }
 
-.hero-mini-list {
+.hero-findings-grid {
     display: grid;
-    gap: 0.6rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.55rem;
 }
 
-.hero-mini-item {
-    background: #ffffff;
-    border: 1px solid #d8e6d8;
-    border-radius: 14px;
-    padding: 0.7rem 0.8rem;
-    color: #224229;
-    font-size: 0.92rem;
+.hero-finding {
+    text-align: center;
+    padding: 0.35rem 0.3rem 0.15rem 0.3rem;
 }
 
-.hero-mini-item strong {
+.hero-finding-icon {
+    font-size: 1.55rem;
     display: block;
+    margin-bottom: 0.28rem;
+}
+
+.hero-finding-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #47614c;
+    line-height: 1.25;
+}
+
+.hero-finding-value {
+    font-size: 1.18rem;
+    font-weight: 800;
     color: #17351d;
-    margin-bottom: 0.2rem;
+    margin-top: 0.25rem;
 }
 
 .section-card {
@@ -224,9 +278,9 @@ h1, h2, h3 {
 .metrics-card {
     background: linear-gradient(180deg, #ffffff 0%, #f7fbf7 100%);
     border: 1px solid #d8e6d8;
-    border-radius: 18px;
-    padding: 0.8rem 0.9rem;
-    box-shadow: 0 10px 22px rgba(46, 125, 50, 0.05);
+    border-radius: 24px;
+    padding: 1rem 1.05rem 1.1rem 1.05rem;
+    box-shadow: 0 16px 30px rgba(46, 125, 50, 0.07);
 }
 
 .metrics-note {
@@ -235,9 +289,117 @@ h1, h2, h3 {
     margin: 0.25rem 0 0.8rem 0;
 }
 
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.85rem;
+}
+
+.summary-tile {
+    background: linear-gradient(180deg, #ffffff 0%, #fcfefb 100%);
+    border: 1px solid #dfeadf;
+    border-radius: 18px;
+    padding: 0.95rem 0.9rem;
+    min-height: 120px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+}
+
+.summary-kicker {
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #55705a;
+    margin-bottom: 0.45rem;
+}
+
+.summary-value {
+    font-size: 1.55rem;
+    font-weight: 800;
+    color: #17351d;
+    line-height: 1.1;
+}
+
+.summary-detail {
+    margin-top: 0.35rem;
+    color: #48624d;
+    font-size: 0.88rem;
+    line-height: 1.35;
+}
+
+.spotlight-card {
+    background: linear-gradient(180deg, #ffffff 0%, #f8fcf7 100%);
+    border: 1px solid #d8e6d8;
+    border-radius: 24px;
+    padding: 1rem 1.05rem 1.1rem 1.05rem;
+    box-shadow: 0 16px 30px rgba(46, 125, 50, 0.07);
+}
+
+.spotlight-header {
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #2a5a33;
+    margin-bottom: 0.4rem;
+}
+
+.spotlight-value {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: #17351d;
+    margin-bottom: 0.25rem;
+}
+
+.spotlight-note {
+    color: #4b6650;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    margin-bottom: 0.85rem;
+}
+
+.feature-strip {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.9rem;
+    margin-top: 1rem;
+}
+
+.feature-card {
+    background: rgba(255,255,255,0.72);
+    border: 1px solid #d8e6d8;
+    border-radius: 18px;
+    padding: 0.95rem 1rem;
+    box-shadow: 0 10px 22px rgba(46, 125, 50, 0.05);
+}
+
+.feature-card strong {
+    display: block;
+    color: #17351d;
+    margin-bottom: 0.22rem;
+}
+
+.feature-card span {
+    color: #4a6250;
+    font-size: 0.9rem;
+}
+
 @media (max-width: 900px) {
-    .hero-grid {
+    .hero-layout,
+    .summary-grid,
+    .feature-strip {
         grid-template-columns: 1fr;
+    }
+    .hero-findings-grid {
+        grid-template-columns: 1fr;
+    }
+    .hero-findings {
+        position: static;
+        width: auto;
+        margin: 1rem;
+    }
+    .hero-visual {
+        min-height: 340px;
     }
 }
 
@@ -249,18 +411,46 @@ h1, h2, h3 {
 st.markdown(
     """
 <div class="hero-card">
-  <div class="hero-badge">🌾 Plant Phenotyping Dashboard</div>
-  <div class="hero-title">🌱 Drought Stress Phenotyping &amp; Breeding AI</div>
-  <div class="hero-subtitle">
-    A crop-oriented scientific dashboard for identifying drought-tolerant genotypes
-    using <b>Chlorophyll Content</b>, <b>Photosystem II Efficiency</b>, and
-    integrated stress-response modeling.
-  </div>
-  <div class="hero-pills">
-    <div class="hero-pill">🍃 Chlorophyll Content</div>
-    <div class="hero-pill">🌿 Photosystem II Efficiency</div>
-    <div class="hero-pill">🧪 Stress Index</div>
-    <div class="hero-pill">🌱 Breeding Decision Support</div>
+  <div class="hero-layout">
+    <div class="hero-copy">
+      <div class="hero-badge">🌾 Plant Phenotyping Dashboard</div>
+      <div class="hero-title">🌱 Drought Stress Phenotyping &amp; Breeding AI</div>
+      <div class="hero-subtitle">
+        A crop-oriented scientific dashboard for identifying drought-tolerant genotypes
+        using <b>Chlorophyll Content</b>, <b>Photosystem II Efficiency</b>, <b>Yield</b>,
+        and integrated stress-response modeling.
+      </div>
+      <div class="hero-pills">
+        <div class="hero-pill">🍃 Chlorophyll Content</div>
+        <div class="hero-pill">🌿 Photosystem II Efficiency</div>
+        <div class="hero-pill">🌾 Yield</div>
+        <div class="hero-pill">🧪 Stress Index</div>
+        <div class="hero-pill">🎯 Breeding Decision Support</div>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="hero-plant">🌱</div>
+      <div class="hero-findings">
+        <div class="hero-findings-title">Scientific Workflow</div>
+        <div class="hero-findings-grid">
+          <div class="hero-finding">
+            <span class="hero-finding-icon">🧬</span>
+            <div class="hero-finding-label">Trait<br>screening</div>
+            <div class="hero-finding-value">1</div>
+          </div>
+          <div class="hero-finding">
+            <span class="hero-finding-icon">📊</span>
+            <div class="hero-finding-label">Stress + Yield<br>analysis</div>
+            <div class="hero-finding-value">2</div>
+          </div>
+          <div class="hero-finding">
+            <span class="hero-finding-icon">🥇</span>
+            <div class="hero-finding-label">Breeding<br>decision</div>
+            <div class="hero-finding-value">3</div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 """,
@@ -290,7 +480,7 @@ p, label, div {
 
 st.info(
     """
-This tool integrates Chlorophyll Content and Photosystem II Efficiency with stress modeling to support drought-tolerant genotype selection.
+This tool integrates Chlorophyll Content, Photosystem II Efficiency, and Yield with stress modeling to support drought-tolerant genotype selection.
 
 It is crop-independent and can be applied to any plant species as long as the required physiological and yield data are provided.
 """
@@ -304,7 +494,7 @@ with st.expander("📌 How to use this app"):
    - Genotype (e.g. H1, H2...)
    - Chlorophyll_Content
    - Photosystem_II_Efficiency
-   - Yield (optional)
+   - Yield (recommended for breeding and productivity analysis)
 3. Upload the file
 4. Click Run Analysis
 5. View results and download report
@@ -323,7 +513,10 @@ with st.expander("🧠 Interpretation Guide"):
 - **Photosystem II Efficiency (formerly Fv/Fm):**  
   Measures photosynthetic efficiency under stress conditions. Higher values = better physiological performance.
 
-👉 These two traits are complementary and describe plant health from different physiological perspectives.
+- **Yield:**  
+  Represents productivity under the evaluated conditions. Higher values = stronger agronomic performance.
+
+👉 These variables are complementary: the physiological traits describe plant health, while Yield helps confirm whether that tolerance is translated into productivity.
 """
     )
 
@@ -347,6 +540,11 @@ The app combines both normalized physiological variables:
 
 - Close to 0 → tolerant genotype  
 - Close to 1 → sensitive genotype  
+
+### Yield
+- Represents the productive outcome of each genotype under the evaluated conditions  
+- Higher values = better agronomic performance  
+- When combined with Stress Index, it helps identify elite genotypes with both tolerance and productivity  
 """
     )
 
@@ -552,12 +750,14 @@ def style_dataframe(styler):
             {
                 "selector": "th",
                 "props": [
-                    ("background-color", DASHBOARD_BG),
-                    ("color", TEXT_COLOR),
+                    ("background-color", LOW_STRESS_COLOR),
+                    ("color", "white"),
                     ("font-weight", "700"),
-                    ("border", f"1px solid {BORDER_COLOR}"),
-                    ("padding", "10px 12px"),
+                    ("border", f"1px solid {LOW_STRESS_COLOR}"),
+                    ("padding", "11px 12px"),
                     ("text-align", "left"),
+                    ("font-size", "0.9rem"),
+                    ("letter-spacing", "0.01em"),
                 ],
             },
             {
@@ -566,12 +766,31 @@ def style_dataframe(styler):
                     ("background-color", CARD_BG),
                     ("color", TEXT_COLOR),
                     ("border", f"1px solid {BORDER_COLOR}"),
-                    ("padding", "9px 12px"),
+                    ("padding", "10px 12px"),
+                    ("font-size", "0.93rem"),
                 ],
             },
             {
-                "selector": "tbody tr:hover",
+                "selector": "tbody tr:nth-child(even) td",
+                "props": [("background-color", "#f8fcf7")],
+            },
+            {
+                "selector": "tbody tr:nth-child(odd) td",
+                "props": [("background-color", "#ffffff")],
+            },
+            {
+                "selector": "tbody tr:hover td",
                 "props": [("background-color", "#eef7ee")],
+            },
+            {
+                "selector": "caption",
+                "props": [
+                    ("caption-side", "top"),
+                    ("text-align", "left"),
+                    ("font-weight", "600"),
+                    ("color", "#48624d"),
+                    ("padding", "0 0 8px 0"),
+                ],
             },
         ]
     )
@@ -580,15 +799,15 @@ def style_dataframe(styler):
 def style_score_cell(value):
     text_color = TEXT_COLOR if 0.4 <= float(value) < 0.7 else "white"
     return (
-        f"background-color: {color_scale(float(value))}; "
-        f"color: {text_color}; font-weight: 700;"
+        f"background: linear-gradient(90deg, {color_scale(float(value))} 0%, {color_scale(float(value))}dd 100%); "
+        f"color: {text_color}; font-weight: 800; border-left: 4px solid {color_scale(float(value))};"
     )
 
 
 def style_breeding_score_cell(value):
     return (
-        "background-color: rgba(46, 125, 50, 0.12); "
-        "color: #1b1b1b; font-weight: 700;"
+        "background: linear-gradient(90deg, rgba(46, 125, 50, 0.08) 0%, rgba(46, 125, 50, 0.18) 100%); "
+        f"color: {TEXT_COLOR}; font-weight: 800; border-left: 4px solid {LOW_STRESS_COLOR};"
     )
 
 
@@ -606,6 +825,30 @@ def style_genotype_cell(value, best=None, worst=None):
             f"border-left: 4px solid {HIGH_STRESS_COLOR};"
         )
     return ""
+
+
+def style_rank_cell(value):
+    return (
+        "background-color: rgba(46, 125, 50, 0.08); "
+        f"color: {LOW_STRESS_COLOR}; font-weight: 800; text-align: center;"
+    )
+
+
+def style_class_cell(value):
+    label = str(value).lower()
+    if "low" in label:
+        color = LOW_STRESS_COLOR
+        text = "white"
+    elif "moderate" in label:
+        color = MODERATE_STRESS_COLOR
+        text = TEXT_COLOR
+    else:
+        color = HIGH_STRESS_COLOR
+        text = "white"
+    return (
+        f"background-color: {color}; color: {text}; font-weight: 700; "
+        f"border-left: 4px solid {color};"
+    )
 
 
 def render_styled_table(
@@ -629,6 +872,12 @@ def render_styled_table(
         styler = styler.map(
             lambda x: style_genotype_cell(x, best=best, worst=worst), subset=["Genotype"]
         )
+    if "Rank" in df_table.columns:
+        styler = styler.map(style_rank_cell, subset=["Rank"])
+    if "Class" in df_table.columns:
+        styler = styler.map(style_class_cell, subset=["Class"])
+    if "Yield_Class" in df_table.columns:
+        styler = styler.map(style_class_cell, subset=["Yield_Class"])
     if caption_text:
         st.caption(caption_text)
     st.dataframe(styler, use_container_width=True)
@@ -646,6 +895,47 @@ def start_section(kicker):
 
 def end_section():
     st.markdown("</div>", unsafe_allow_html=True)
+
+
+def render_summary_tile(label, value, detail):
+    st.markdown(
+        f"""
+<div class="summary-tile">
+  <div class="summary-kicker">{label}</div>
+  <div class="summary-value">{value}</div>
+  <div class="summary-detail">{detail}</div>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
+
+def render_spotlight_card(selected, highlight, has_yield):
+    stress_value = highlight["Stress_Index"].mean()
+    stress_state = (
+        "Low stress"
+        if stress_value < 0.4
+        else "Moderate stress" if stress_value < 0.7 else "High stress"
+    )
+    if has_yield and highlight["Yield"].notna().any():
+        yield_text = f"{highlight['Yield'].mean():.2f}"
+        yield_sentence = f"Average yield for this genotype is <b>{yield_text}</b>."
+    else:
+        yield_sentence = "Yield data is not available for this genotype in the current dataset."
+
+    st.markdown(
+        f"""
+<div class="spotlight-card">
+  <div class="spotlight-header">🔎 Genotype Spotlight</div>
+  <div class="spotlight-value">{selected}</div>
+  <div class="spotlight-note">
+    Stress profile: <b>{stress_state}</b> with mean Stress Index <b>{stress_value:.3f}</b>.<br>
+    {yield_sentence}
+  </div>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
 
 
 def add_stress_legend(ax, include_selected=False):
@@ -1218,29 +1508,51 @@ fig1 = plot_stress(df)
 fig2 = plot_yield(df) if has_yield else None
 fig_tradeoff = plot_stress_vs_yield(df) if has_yield else None
 
-st.markdown('<div class="metrics-card">', unsafe_allow_html=True)
-st.subheader("📈 Dashboard Summary")
-st.markdown(
-    '<div class="metrics-note">Key result snapshot for fast screening before exploring the detailed tables and plots.</div>',
-    unsafe_allow_html=True,
-)
-metric_cols = st.columns(4)
-metric_cols[0].metric("🌱 Best Genotype", best)
-metric_cols[1].metric("🔥 Worst Genotype", worst)
-metric_cols[2].metric("🧪 Avg Stress", f"{avg_stress:.3f}")
-metric_cols[3].metric("🌾 Top Yield", top_yield_text)
-st.markdown("</div>", unsafe_allow_html=True)
+summary_col, spotlight_col = st.columns([2.2, 1], gap="large")
 
-st.subheader("🔎 Search Genotype")
+with summary_col:
+    st.markdown('<div class="metrics-card">', unsafe_allow_html=True)
+    st.subheader("📈 Dashboard Summary")
+    st.markdown(
+        '<div class="metrics-note">Key result snapshot for fast screening before exploring the detailed tables and plots.</div>',
+        unsafe_allow_html=True,
+    )
+    tile_cols = st.columns(4)
+    with tile_cols[0]:
+        render_summary_tile(
+            "🌱 Best Genotype",
+            best,
+            "Lowest mean Stress Index across the evaluated genotypes.",
+        )
+    with tile_cols[1]:
+        render_summary_tile(
+            "🔥 Worst Genotype",
+            worst,
+            "Highest mean Stress Index and weakest drought stability.",
+        )
+    with tile_cols[2]:
+        render_summary_tile(
+            "🧪 Average Stress",
+            f"{avg_stress:.3f}",
+            "Dataset-level physiological stress summary.",
+        )
+    with tile_cols[3]:
+        render_summary_tile(
+            "🌾 Top Yield",
+            top_yield_text,
+            "Highest mean productivity observed in the current dataset.",
+        )
+    st.markdown("</div>", unsafe_allow_html=True)
 
-genotype_list = df["Genotype"].unique()
-
-selected = st.selectbox(
-    "Find specific genotype",
-    genotype_list,
-)
-
-highlight = df[df["Genotype"] == selected]
+with spotlight_col:
+    st.subheader("🔎 Search Genotype")
+    genotype_list = df["Genotype"].unique()
+    selected = st.selectbox(
+        "Find specific genotype",
+        genotype_list,
+    )
+    highlight = df[df["Genotype"] == selected]
+    render_spotlight_card(selected, highlight, has_yield)
 
 
 start_section("01 • Ranking & Selection")
@@ -1673,8 +1985,9 @@ This graph shows plant physiological health.
 
 - **Chlorophyll Content:** proxy of leaf greenness and chlorophyll level  
 - **Photosystem II Efficiency:** indicator of photosynthetic performance and stress damage  
+- **Yield:** agronomic output used to evaluate whether physiological tolerance is expressed as real productivity  
 
-👉 These traits are complementary but NOT equivalent.
+👉 These indicators are complementary but NOT equivalent.
 """
 )
 
@@ -1731,3 +2044,27 @@ if st.button("📄 Generate Full Scientific Report"):
 
 if st.button("Generate full report (disabled)"):
     pass
+
+st.markdown(
+    """
+<div class="feature-strip">
+  <div class="feature-card">
+    <strong>🧪 Science-based</strong>
+    <span>Integrated physiological and agronomic screening for drought evaluation.</span>
+  </div>
+  <div class="feature-card">
+    <strong>🌾 Crop-independent</strong>
+    <span>Suitable for any species with Chlorophyll Content, Photosystem II Efficiency, and Yield data.</span>
+  </div>
+  <div class="feature-card">
+    <strong>🧠 AI-assisted insights</strong>
+    <span>Turns trait measurements into interpretable breeding-oriented conclusions.</span>
+  </div>
+  <div class="feature-card">
+    <strong>🎯 Selection support</strong>
+    <span>Highlights elite genotypes and clarifies stress-versus-productivity trade-offs.</span>
+  </div>
+</div>
+""",
+    unsafe_allow_html=True,
+)
